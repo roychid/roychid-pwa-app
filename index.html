@@ -2,404 +2,335 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Roy CMS">
-  <meta name="theme-color" content="#080809">
+  <meta name="theme-color" content="#09090b">
   <title>Roy CMS</title>
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <!-- Firebase compat (no ES modules needed) -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Firebase -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
+
+  <!-- React + Babel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
+
   <style>
     :root {
-      --bg:#080809;--bg2:#0f0f12;--card:#131317;--card2:#1a1a20;
-      --border:#222228;--border2:#2c2c35;--text:#ededf0;--text2:#9898a6;--text3:#55555f;
-      --accent:#6e57ff;--accentS:rgba(110,87,255,0.15);--green:#3ddba4;--greenS:rgba(61,219,164,0.12);
-      --warn:#f59e0b;--danger:#ef4444;--safe:env(safe-area-inset-bottom,0px);
+      --bg:     #09090b;
+      --bg1:    #111113;
+      --bg2:    #18181b;
+      --bg3:    #27272a;
+      --border: #3f3f46;
+      --border2:#52525b;
+      --text:   #fafafa;
+      --text2:  #a1a1aa;
+      --text3:  #71717a;
+      --accent: #7c3aed;
+      --accentL:#8b5cf6;
+      --accentS:rgba(124,58,237,0.15);
+      --green:  #10b981;
+      --greenS: rgba(16,185,129,0.12);
+      --amber:  #f59e0b;
+      --red:    #ef4444;
+      --safe:   env(safe-area-inset-bottom,0px);
+      --top:    env(safe-area-inset-top,0px);
     }
-    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-    html,body{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased;overscroll-behavior:none}
 
-    /* SCREENS */
-    .screen{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);transform:translateX(100%);transition:transform 0.3s cubic-bezier(.32,.72,0,1);z-index:10;overflow:hidden}
-    .screen.active{transform:translateX(0);z-index:20}
-    .screen.behind{transform:translateX(-8%);z-index:10}
-    .screen.root{transform:translateX(0);z-index:5}
+    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
 
-    /* LOCK */
-    #lockScreen{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0a0a0f,#13131a);z-index:200}
-    #lockScreen.hidden{display:none}
-    .lock-icon{width:72px;height:72px;border-radius:20px;background:var(--accentS);border:1px solid rgba(110,87,255,0.3);display:flex;align-items:center;justify-content:center;font-size:30px;margin-bottom:24px}
-    .lock-title{font-size:22px;font-weight:700;color:var(--text);margin-bottom:8px}
-    .lock-sub{font-size:13px;color:var(--text2);margin-bottom:40px;text-align:center;padding:0 20px}
-    .pin-dots{display:flex;gap:16px;margin-bottom:16px}
-    .pin-dot{width:14px;height:14px;border-radius:50%;border:2px solid var(--border2);background:transparent;transition:all 0.15s}
-    .pin-dot.filled{background:var(--accent);border-color:var(--accent)}
-    .pin-error{font-size:13px;color:var(--danger);height:20px;margin-bottom:16px;text-align:center}
-    .keypad{display:grid;grid-template-columns:repeat(3,72px);gap:12px}
-    .key{width:72px;height:72px;border-radius:50%;background:var(--card);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:22px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 0.1s,transform 0.1s;user-select:none}
-    .key:active{background:var(--card2);transform:scale(0.93)}
-    .key.empty{background:transparent;border-color:transparent;pointer-events:none}
-    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-8px)}80%{transform:translateX(8px)}}
-    .shake{animation:shake 0.4s ease}
+    html,body,#root {
+      height:100%; width:100%;
+      background:var(--bg);
+      color:var(--text);
+      font-family:'Inter',sans-serif;
+      font-size:15px;
+      line-height:1.5;
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+    }
 
-    /* TABS */
-    .tabs{position:fixed;bottom:0;left:0;right:0;height:calc(60px + var(--safe));padding-bottom:var(--safe);background:var(--card);border-top:1px solid var(--border);display:flex;z-index:50}
-    .tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;padding-top:8px;position:relative}
-    .tab-icon{font-size:20px;line-height:1}
-    .tab-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:0.3px}
-    .tab.active .tab-label{color:var(--accent)}
-    .tab-badge{position:absolute;top:6px;right:calc(50% - 16px);min-width:16px;height:16px;border-radius:8px;background:var(--danger);font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 4px}
+    /* ── APP SHELL ── */
+    .app { position:relative; width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
 
-    /* LAYOUT */
-    .screen-body{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(70px + var(--safe))}
-    .topbar{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 12px;padding-top:calc(16px + env(safe-area-inset-top,0px));background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
-    .topbar-title{font-size:20px;font-weight:700;color:var(--text)}
-    .topbar-sub{font-size:12px;color:var(--text2);margin-top:1px}
-    .icon-btn{width:36px;height:36px;border-radius:10px;background:var(--card2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0}
-    .icon-btn:active{background:var(--border)}
-    .icon-btn.accent{background:var(--accent);border-color:var(--accent)}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
-    .section-label{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.8px;text-transform:uppercase;margin-bottom:10px}
+    /* ── LOCK ── */
+    .lock {
+      position:fixed; inset:0; z-index:300;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      background:radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, var(--bg) 70%);
+    }
+    .lock-logo {
+      width:76px; height:76px; border-radius:22px;
+      background:var(--accentS); border:1px solid rgba(124,58,237,0.35);
+      display:flex; align-items:center; justify-content:center; margin-bottom:28px;
+      box-shadow:0 0 40px rgba(124,58,237,0.2);
+    }
+    .lock-title { font-size:24px; font-weight:800; color:var(--text); margin-bottom:6px; letter-spacing:-0.5px; }
+    .lock-sub   { font-size:13px; color:var(--text2); margin-bottom:44px; }
+    .pdots { display:flex; gap:14px; margin-bottom:12px; }
+    .pdot  { width:13px; height:13px; border-radius:50%; border:2px solid var(--border); background:transparent; transition:all 0.15s; }
+    .pdot.on { background:var(--accent); border-color:var(--accent); transform:scale(1.1); }
+    .perr  { font-size:12px; color:var(--red); height:18px; margin-bottom:20px; }
+    .kpad  { display:grid; grid-template-columns:repeat(3,70px); gap:10px; }
+    .kkey  {
+      width:70px; height:70px; border-radius:50%;
+      background:var(--bg2); border:1px solid var(--border);
+      color:var(--text); font-family:'Inter',sans-serif; font-size:22px; font-weight:500;
+      cursor:pointer; display:flex; align-items:center; justify-content:center;
+      transition:all 0.12s; user-select:none;
+    }
+    .kkey:active { background:var(--bg3); transform:scale(0.92); }
+    .kkey.ghost  { background:transparent; border-color:transparent; pointer-events:none; }
+    @keyframes shake {
+      0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
+    }
+    .shaking { animation:shake 0.35s ease; }
 
-    /* DASHBOARD */
-    .dash-greeting{font-size:22px;font-weight:700;color:var(--text)}
-    .dash-sub{font-size:13px;color:var(--text2);margin-top:2px;margin-bottom:20px}
-    .stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
-    .stat-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px 12px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer}
-    .stat-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px}
-    .stat-n{font-size:22px;font-weight:700;color:var(--text)}
-    .stat-l{font-size:10px;color:var(--text3);text-align:center}
-    .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
-    .quick-btn{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 14px;display:flex;flex-direction:column;gap:10px;cursor:pointer}
-    .quick-btn:active{transform:scale(0.97)}
-    .quick-btn-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px}
-    .quick-btn-label{font-size:13px;font-weight:600;color:var(--text)}
-    .item-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--border)}
-    .item-row:last-child{border-bottom:none;padding-bottom:0}
-    .item-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
-    .item-title{font-size:14px;font-weight:500;color:var(--text);flex:1}
-    .item-sub{font-size:12px;color:var(--text2);margin-top:1px}
-    .item-badge{font-size:11px;font-weight:600;padding:3px 8px;border-radius:6px}
-    .msg-avatar{width:36px;height:36px;border-radius:50%;background:var(--accentS);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--accent);flex-shrink:0}
+    /* ── SCREENS ── */
+    .screens { flex:1; position:relative; overflow:hidden; }
+    .screen  {
+      position:absolute; inset:0;
+      display:flex; flex-direction:column;
+      background:var(--bg);
+      will-change:transform;
+      transition:transform 0.32s cubic-bezier(0.32,0.72,0,1), opacity 0.32s;
+    }
+    .screen.slide-right  { transform:translateX(100%); }
+    .screen.slide-left   { transform:translateX(-6%); opacity:0.7; }
+    .screen.slide-center { transform:translateX(0); opacity:1; }
 
-    /* PROJECTS */
-    .proj-card{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px}
-    .proj-cover{width:100%;height:160px;background:var(--card2);display:flex;align-items:center;justify-content:center;font-size:32px;color:var(--text3);overflow:hidden}
-    .proj-cover img{width:100%;height:100%;object-fit:cover}
-    .proj-body{padding:14px}
-    .proj-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
-    .proj-name{font-size:16px;font-weight:600;color:var(--text)}
-    .proj-desc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
-    .tags-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
-    .tag{font-size:11px;font-weight:500;color:var(--accent);background:var(--accentS);padding:3px 8px;border-radius:6px}
-    .proj-actions{display:flex;gap:10px;border-top:1px solid var(--border);padding-top:12px}
-    .proj-btn{flex:1;padding:9px;border-radius:8px;border:1px solid var(--border);background:var(--card2);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px}
-    .proj-btn:active{background:var(--border)}
-    .proj-btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-    .proj-btn.danger{color:var(--danger);border-color:var(--danger)}
+    /* ── TAB BAR ── */
+    .tabbar {
+      display:flex; background:rgba(17,17,19,0.92);
+      border-top:1px solid var(--border);
+      padding-bottom:var(--safe);
+      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+      flex-shrink:0;
+    }
+    .tabitem {
+      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
+      gap:3px; padding:10px 0; cursor:pointer; position:relative;
+      transition:opacity 0.15s;
+    }
+    .tabitem-label { font-size:10px; font-weight:500; color:var(--text3); letter-spacing:0.2px; }
+    .tabitem.active .tabitem-label { color:var(--accentL); }
+    .tabitem svg   { color:var(--text3); transition:color 0.15s; }
+    .tabitem.active svg { color:var(--accentL); }
+    .tab-pip {
+      position:absolute; top:8px; right:calc(50% - 14px);
+      min-width:16px; height:16px; border-radius:8px;
+      background:var(--red); font-size:10px; font-weight:700; color:#fff;
+      display:flex; align-items:center; justify-content:center; padding:0 4px;
+    }
 
-    /* FORM */
-    .form-body{padding:20px}
-    .field{margin-bottom:18px}
-    .field label{display:block;font-size:11px;font-weight:600;color:var(--text2);letter-spacing:0.5px;text-transform:uppercase;margin-bottom:8px}
-    .field input,.field textarea{width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;-webkit-appearance:none}
-    .field input:focus,.field textarea:focus{border-color:var(--accent)}
-    .field textarea{resize:none}
-    .field input::placeholder,.field textarea::placeholder{color:var(--text3)}
-    .status-pills{display:flex;gap:8px}
-    .status-pill{flex:1;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--card2);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;text-align:center}
-    .status-pill.active{border-color:var(--accent);background:var(--accentS);color:var(--accent)}
-    .img-picker{width:100%;height:160px;border-radius:12px;border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;overflow:hidden;position:relative;background:var(--card2)}
-    .img-picker img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-    .img-picker-label{font-size:13px;color:var(--text2);z-index:1}
-    .img-picker-sub{font-size:11px;color:var(--text3);z-index:1}
-    .img-picker-overlay{position:absolute;inset:0;background:rgba(0,0,0,0.5);display:flex;align-items:center;justify-content:center;z-index:2}
-    .btn-primary{width:100%;padding:14px;border-radius:12px;background:var(--accent);border:none;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
-    .btn-primary:active{opacity:0.8}
-    .btn-primary:disabled{opacity:0.4}
-    .btn-ghost{width:100%;padding:13px;border-radius:12px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:10px}
-    .btn-ghost:active{background:var(--card2)}
+    /* ── TOPBAR ── */
+    .topbar {
+      display:flex; align-items:center; justify-content:space-between;
+      padding:12px 18px; padding-top:calc(12px + var(--top));
+      background:rgba(17,17,19,0.92); border-bottom:1px solid var(--border);
+      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
+      flex-shrink:0; min-height:56px;
+    }
+    .topbar-title { font-size:18px; font-weight:700; color:var(--text); letter-spacing:-0.3px; }
+    .topbar-sub   { font-size:11px; color:var(--text3); margin-top:1px; }
+    .ibtn {
+      width:36px; height:36px; border-radius:10px;
+      background:var(--bg2); border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center;
+      cursor:pointer; transition:background 0.15s; flex-shrink:0; color:var(--text2);
+    }
+    .ibtn:active { background:var(--bg3); }
+    .ibtn.accent { background:var(--accent); border-color:var(--accent); color:#fff; }
 
-    /* MESSAGES */
-    .msg-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;display:flex;gap:12px;align-items:flex-start}
-    .msg-card.unread{border-color:rgba(110,87,255,0.4);background:rgba(110,87,255,0.05)}
-    .msg-info{flex:1;min-width:0}
-    .msg-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
-    .msg-name{font-size:14px;font-weight:600;color:var(--text)}
-    .msg-time{font-size:11px;color:var(--text3)}
-    .msg-subject{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
-    .msg-preview{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .unread-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px}
-    .msg-detail-header{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;display:flex;gap:14px;align-items:center}
-    .msg-detail-body{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;font-size:14px;color:var(--text);line-height:1.75}
-    .reply-row{display:flex;gap:10px}
-    .reply-btn{flex:1;padding:13px;border-radius:12px;border:none;font-family:'Inter',sans-serif;font-size:14px;font-weight:600;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+    /* ── SCROLL BODY ── */
+    .sbody {
+      flex:1; overflow-y:auto; overflow-x:hidden;
+      -webkit-overflow-scrolling:touch;
+      scroll-behavior:smooth;
+    }
+    .pad  { padding:16px; }
+    .pad2 { padding:20px; }
 
-    /* SECTIONS */
-    .section-item{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;display:flex;gap:14px;align-items:center;cursor:pointer}
-    .section-item-icon{width:44px;height:44px;border-radius:11px;background:var(--accentS);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-    .section-item-name{font-size:15px;font-weight:600;color:var(--text)}
-    .section-item-sub{font-size:12px;color:var(--text2);margin-top:2px}
+    /* ── CARDS ── */
+    .card  { background:var(--bg1); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; }
+    .card2 { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; }
 
-    /* SETTINGS */
-    .settings-group{margin-bottom:24px}
-    .settings-row{background:var(--card);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:8px}
-    .settings-item{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border)}
-    .settings-item:last-child{border-bottom:none}
-    .settings-item:active{background:var(--card2)}
-    .settings-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-    .settings-label{font-size:14px;font-weight:500;color:var(--text);flex:1}
-    .settings-sub{font-size:12px;color:var(--text2);margin-top:1px}
-    .settings-arrow{color:var(--text3);font-size:16px}
+    /* ── SECTION LABEL ── */
+    .slabel { font-size:11px; font-weight:600; color:var(--text3); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:10px; margin-top:4px; }
 
-    /* MISC */
-    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px}
-    .empty-icon{font-size:48px;opacity:0.4}
-    .empty-title{font-size:16px;font-weight:600;color:var(--text2)}
-    .empty-sub{font-size:13px;color:var(--text3);text-align:center;line-height:1.6}
-    .spinner{width:24px;height:24px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.6s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    .loading-center{display:flex;align-items:center;justify-content:center;padding:60px}
-    .toast{position:fixed;bottom:calc(80px + var(--safe));left:20px;right:20px;background:var(--card2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;font-size:13px;font-weight:500;color:var(--text);z-index:999;text-align:center;transform:translateY(20px);opacity:0;transition:all 0.3s cubic-bezier(.32,.72,0,1);pointer-events:none}
-    .toast.show{transform:translateY(0);opacity:1}
-    .toast.success{border-color:var(--green);color:var(--green)}
-    .toast.error{border-color:var(--danger);color:var(--danger)}
-    .notif-card{background:linear-gradient(135deg,var(--accentS),transparent);border:1px solid rgba(110,87,255,0.3);border-radius:14px;padding:16px;margin-bottom:20px;display:flex;gap:14px;align-items:center}
-    .notif-text{flex:1;font-size:13px;color:var(--text2);line-height:1.5}
-    .notif-text strong{display:block;color:var(--text);margin-bottom:3px}
-    .notif-btn{background:var(--accent);color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer}
-    .install-banner{position:fixed;bottom:calc(70px + var(--safe));left:12px;right:12px;background:var(--card);border:1px solid var(--accent);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px;z-index:60;transform:translateY(100px);opacity:0;transition:all 0.4s cubic-bezier(.32,.72,0,1)}
-    .install-banner.show{transform:translateY(0);opacity:1}
-    .install-banner-text{flex:1;font-size:13px;color:var(--text2)}
-    .install-banner-text strong{display:block;font-size:14px;color:var(--text);margin-bottom:2px}
-    .install-btn{background:var(--accent);color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer}
-    .install-dismiss{background:none;border:none;color:var(--text3);font-size:18px;cursor:pointer;padding:4px}
-    ::-webkit-scrollbar{width:0}
+    /* ── DASHBOARD ── */
+    .greeting { font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px; line-height:1.2; }
+    .greeting-sub { font-size:13px; color:var(--text3); margin-top:4px; margin-bottom:24px; }
+
+    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px; }
+    .stat-box {
+      background:var(--bg1); border:1px solid var(--border); border-radius:14px;
+      padding:14px 10px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
+      transition:border-color 0.15s, transform 0.15s;
+    }
+    .stat-box:active { transform:scale(0.96); border-color:var(--accent); }
+    .stat-ico { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; }
+    .stat-n   { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-0.5px; }
+    .stat-l   { font-size:10px; color:var(--text3); text-align:center; font-weight:500; }
+
+    .quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
+    .qbtn {
+      background:var(--bg1); border:1px solid var(--border); border-radius:14px;
+      padding:16px 14px; display:flex; flex-direction:column; gap:10px; cursor:pointer;
+      transition:border-color 0.15s, transform 0.15s;
+    }
+    .qbtn:active { transform:scale(0.97); border-color:var(--accent); }
+    .qbtn-ico   { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
+    .qbtn-label { font-size:13px; font-weight:600; color:var(--text); }
+
+    .rrow { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); cursor:pointer; }
+    .rrow:last-child { border-bottom:none; padding-bottom:0; }
+    .rrow-title { font-size:14px; font-weight:500; color:var(--text); flex:1; }
+    .rrow-sub   { font-size:12px; color:var(--text3); margin-top:1px; }
+    .avatar { width:36px; height:36px; border-radius:50%; background:var(--accentS); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--accentL); flex-shrink:0; }
+
+    /* ── BADGE ── */
+    .badge { font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; }
+
+    /* ── PROJECTS ── */
+    .pcard { background:var(--bg1); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:14px; }
+    .pcover { width:100%; height:160px; background:var(--bg2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
+    .pcover img { width:100%; height:100%; object-fit:cover; }
+    .pcover-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--text3); }
+    .pbody { padding:14px; }
+    .ptop  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+    .pname { font-size:16px; font-weight:700; color:var(--text); letter-spacing:-0.2px; flex:1; margin-right:8px; }
+    .pdesc { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:10px; }
+    .tags  { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+    .tag   { font-size:11px; font-weight:500; color:var(--accentL); background:var(--accentS); padding:3px 9px; border-radius:20px; }
+    .pacts { display:flex; gap:8px; border-top:1px solid var(--border); padding-top:12px; }
+    .pabtn { flex:1; padding:9px; border-radius:9px; border:1px solid var(--border); background:var(--bg2); font-size:12px; font-weight:600; color:var(--text2); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; font-family:'Inter',sans-serif; transition:all 0.15s; }
+    .pabtn:active { background:var(--bg3); }
+    .pabtn.p { background:var(--accent); border-color:var(--accent); color:#fff; }
+    .pabtn.d { color:var(--red); border-color:rgba(239,68,68,0.3); }
+
+    /* ── FORM ── */
+    .field { margin-bottom:18px; }
+    .field-label { display:block; font-size:11px; font-weight:600; color:var(--text3); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px; }
+    .finput, .ftarea {
+      width:100%; background:var(--bg2); border:1px solid var(--border);
+      border-radius:10px; padding:12px 14px;
+      font-family:'Inter',sans-serif; font-size:14px; color:var(--text);
+      outline:none; -webkit-appearance:none; transition:border-color 0.2s;
+    }
+    .finput:focus, .ftarea:focus { border-color:var(--accent); }
+    .ftarea { resize:none; }
+    .finput::placeholder, .ftarea::placeholder { color:var(--text3); }
+    .spills { display:flex; gap:8px; }
+    .spill  { flex:1; padding:10px; border-radius:9px; border:1px solid var(--border); background:var(--bg2); font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; text-align:center; font-family:'Inter',sans-serif; transition:all 0.15s; }
+    .spill.on { border-color:var(--accent); background:var(--accentS); color:var(--accentL); }
+    .imgpick { width:100%; height:160px; border-radius:12px; border:2px dashed var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; overflow:hidden; position:relative; background:var(--bg2); transition:border-color 0.2s; }
+    .imgpick:active { border-color:var(--accent); }
+    .imgpick img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
+    .imgpick-ov { position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:2; }
+    .btn-a { width:100%; padding:14px; border-radius:12px; background:var(--accent); border:none; color:#fff; font-family:'Inter',sans-serif; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; letter-spacing:-0.2px; transition:opacity 0.2s; }
+    .btn-a:active { opacity:0.82; }
+    .btn-a:disabled { opacity:0.4; }
+    .btn-g { width:100%; padding:13px; border-radius:12px; background:transparent; border:1px solid var(--border); color:var(--text2); font-family:'Inter',sans-serif; font-size:14px; font-weight:500; cursor:pointer; margin-top:10px; transition:background 0.15s; }
+    .btn-g:active { background:var(--bg2); }
+
+    /* ── MESSAGES ── */
+    .mcard { background:var(--bg1); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; cursor:pointer; display:flex; gap:12px; align-items:flex-start; transition:border-color 0.15s; }
+    .mcard.unread { border-color:rgba(124,58,237,0.5); background:rgba(124,58,237,0.04); }
+    .mcard:active { border-color:var(--border2); }
+    .minfo { flex:1; min-width:0; }
+    .mtop  { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; }
+    .mname { font-size:14px; font-weight:600; color:var(--text); }
+    .mtime { font-size:11px; color:var(--text3); }
+    .msubj { font-size:13px; font-weight:500; color:var(--text); margin-bottom:2px; }
+    .mprev { font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .udot  { width:8px; height:8px; border-radius:50%; background:var(--accentL); flex-shrink:0; margin-top:4px; }
+
+    /* ── SECTIONS ── */
+    .secitem { background:var(--bg1); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:10px; display:flex; gap:14px; align-items:center; cursor:pointer; transition:border-color 0.15s; }
+    .secitem:active { border-color:var(--accent); }
+    .secico  { width:44px; height:44px; border-radius:11px; background:var(--accentS); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--accentL); }
+
+    /* ── ANALYTICS ── */
+    .analytics-hero { background:linear-gradient(135deg, var(--accentS), rgba(124,58,237,0.05)); border:1px solid rgba(124,58,237,0.2); border-radius:16px; padding:20px; margin-bottom:16px; }
+    .a-big  { font-size:48px; font-weight:800; color:var(--text); letter-spacing:-2px; line-height:1; }
+    .a-sub  { font-size:13px; color:var(--text2); margin-top:4px; }
+    .a-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
+    .a-box  { background:var(--bg1); border:1px solid var(--border); border-radius:14px; padding:16px; }
+    .a-box-n { font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px; }
+    .a-box-l { font-size:11px; color:var(--text3); margin-top:2px; font-weight:500; }
+    .bar-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
+    .bar-row:last-child { border-bottom:none; }
+    .bar-label { font-size:13px; color:var(--text2); width:80px; flex-shrink:0; }
+    .bar-track { flex:1; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
+    .bar-fill  { height:100%; background:var(--accent); border-radius:3px; transition:width 0.8s cubic-bezier(0.16,1,0.3,1); }
+    .bar-count { font-size:12px; color:var(--text3); width:28px; text-align:right; flex-shrink:0; }
+    .country-flag { font-size:18px; }
+
+    /* ── SETTINGS ── */
+    .sgroup { margin-bottom:24px; }
+    .srows  { background:var(--bg1); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
+    .srow   { display:flex; align-items:center; gap:14px; padding:14px 16px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.15s; }
+    .srow:last-child { border-bottom:none; }
+    .srow:active { background:var(--bg2); }
+    .srow-ico   { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+    .srow-label { font-size:14px; font-weight:500; color:var(--text); flex:1; }
+    .srow-sub   { font-size:12px; color:var(--text3); margin-top:1px; }
+
+    /* ── EMPTY ── */
+    .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:12px; }
+    .empty-ico   { color:var(--text3); margin-bottom:4px; }
+    .empty-title { font-size:16px; font-weight:600; color:var(--text2); }
+    .empty-sub   { font-size:13px; color:var(--text3); text-align:center; line-height:1.6; }
+
+    /* ── TOAST ── */
+    .toast-wrap {
+      position:fixed; bottom:calc(72px + var(--safe)); left:50%; transform:translateX(-50%) translateY(16px);
+      z-index:500; pointer-events:none; width:calc(100% - 32px); max-width:360px;
+      transition:all 0.3s cubic-bezier(0.32,0.72,0,1);
+      opacity:0;
+    }
+    .toast-wrap.visible { transform:translateX(-50%) translateY(0); opacity:1; }
+    .toast-inner { background:var(--bg3); border:1px solid var(--border2); border-radius:12px; padding:13px 16px; font-size:13px; font-weight:500; text-align:center; }
+    .toast-inner.s { border-color:var(--green); color:var(--green); }
+    .toast-inner.e { border-color:var(--red); color:var(--red); }
+
+    /* ── SPINNER ── */
+    .spin { width:22px; height:22px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spinning 0.6s linear infinite; }
+    @keyframes spinning { to { transform:rotate(360deg); } }
+    .spin-center { display:flex; align-items:center; justify-content:center; padding:60px; }
+
+    /* ── INFO HINT ── */
+    .hint { background:var(--accentS); border:1px solid rgba(124,58,237,0.2); border-radius:10px; padding:12px; margin-bottom:20px; font-size:13px; color:var(--text2); line-height:1.6; }
+
+    ::-webkit-scrollbar { width:0; }
 
     @media(min-width:480px){
-      .screen{max-width:480px;left:50%;transform:translateX(calc(-50% + 100vw))}
-      .screen.active{transform:translateX(-50%)}
-      .screen.behind{transform:translateX(calc(-50% - 8%))}
-      .screen.root{transform:translateX(-50%)}
-      .tabs{max-width:480px;left:50%;transform:translateX(-50%)}
-      #lockScreen{max-width:480px;left:50%;transform:translateX(-50%)}
+      .app { max-width:480px; margin:0 auto; box-shadow:0 0 0 1px var(--border); }
+      body { background:#000; }
     }
   </style>
 </head>
 <body>
+<div id="root"></div>
 
-<!-- LOCK SCREEN -->
-<div id="lockScreen">
-  <div class="lock-icon">🔐</div>
-  <div class="lock-title" id="lockTitle">Welcome back, Roy</div>
-  <div class="lock-sub" id="lockSub">Enter your PIN to continue</div>
-  <div class="pin-dots" id="pinDots">
-    <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
-    <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
-  </div>
-  <div class="pin-error" id="pinError"></div>
-  <div class="keypad">
-    <div class="key" onclick="pressKey('1')">1</div><div class="key" onclick="pressKey('2')">2</div><div class="key" onclick="pressKey('3')">3</div>
-    <div class="key" onclick="pressKey('4')">4</div><div class="key" onclick="pressKey('5')">5</div><div class="key" onclick="pressKey('6')">6</div>
-    <div class="key" onclick="pressKey('7')">7</div><div class="key" onclick="pressKey('8')">8</div><div class="key" onclick="pressKey('9')">9</div>
-    <div class="key empty"></div><div class="key" onclick="pressKey('0')">0</div><div class="key" onclick="pressKey('del')" style="font-size:18px;">⌫</div>
-  </div>
-</div>
+<script type="text/babel">
+const { useState, useEffect, useRef, useCallback } = React;
 
-<!-- TABS -->
-<nav class="tabs" id="tabBar" style="display:none;">
-  <div class="tab active" id="tab-dash"     onclick="switchTab('dash')"><div class="tab-icon">⚡</div><div class="tab-label">Dashboard</div></div>
-  <div class="tab" id="tab-projects"        onclick="switchTab('projects')"><div class="tab-icon">📁</div><div class="tab-label">Projects</div></div>
-  <div class="tab" id="tab-sections"        onclick="switchTab('sections')"><div class="tab-icon">✏️</div><div class="tab-label">Sections</div></div>
-  <div class="tab" id="tab-messages"        onclick="switchTab('messages')">
-    <div class="tab-icon">💬</div><div class="tab-label">Messages</div>
-    <div class="tab-badge" id="msgBadge" style="display:none;">0</div>
-  </div>
-  <div class="tab" id="tab-settings"        onclick="switchTab('settings')"><div class="tab-icon">⚙️</div><div class="tab-label">Settings</div></div>
-</nav>
-
-<!-- DASHBOARD -->
-<div class="screen root" id="screen-dash">
-  <div class="screen-body">
-    <div style="padding:20px;padding-top:calc(20px + env(safe-area-inset-top,0px))">
-      <div class="dash-greeting" id="dashGreeting">Good morning, Roy 👋</div>
-      <div class="dash-sub">Portfolio CMS · Personal Dashboard</div>
-      <div class="notif-card" id="notifCard" style="display:none;">
-        <div style="font-size:24px;">🔔</div>
-        <div class="notif-text"><strong>Enable notifications</strong>Get alerted when someone fills your contact form.</div>
-        <button class="notif-btn" onclick="requestNotifPermission()">Allow</button>
-      </div>
-      <div class="stats-row">
-        <div class="stat-card" onclick="switchTab('projects')"><div class="stat-icon" style="background:var(--accentS);">📁</div><div class="stat-n" id="statProjects">—</div><div class="stat-l">Projects</div></div>
-        <div class="stat-card" onclick="switchTab('messages')"><div class="stat-icon" style="background:rgba(245,158,11,0.15);">📩</div><div class="stat-n" id="statMessages">—</div><div class="stat-l">Messages</div></div>
-        <div class="stat-card" onclick="switchTab('messages')"><div class="stat-icon" style="background:rgba(239,68,68,0.15);">🔴</div><div class="stat-n" id="statUnread">—</div><div class="stat-l">Unread</div></div>
-      </div>
-      <div class="section-label">Quick Actions</div>
-      <div class="quick-grid">
-        <div class="quick-btn" onclick="openProjectForm(null)"><div class="quick-btn-icon" style="background:var(--accentS);">➕</div><div class="quick-btn-label">Add Project</div></div>
-        <div class="quick-btn" onclick="switchTab('sections')"><div class="quick-btn-icon" style="background:rgba(61,219,164,0.12);">✏️</div><div class="quick-btn-label">Edit Sections</div></div>
-        <div class="quick-btn" onclick="switchTab('messages')"><div class="quick-btn-icon" style="background:rgba(245,158,11,0.15);">💬</div><div class="quick-btn-label">Messages</div></div>
-        <div class="quick-btn" onclick="switchTab('settings')"><div class="quick-btn-icon" style="background:rgba(239,68,68,0.12);">⚙️</div><div class="quick-btn-label">Settings</div></div>
-      </div>
-      <div class="section-label">Recent Projects</div>
-      <div class="card" id="recentProjects"><div class="loading-center"><div class="spinner"></div></div></div>
-      <div class="section-label" style="margin-top:8px;">Recent Messages</div>
-      <div class="card" id="recentMessages"><div class="loading-center"><div class="spinner"></div></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- PROJECTS -->
-<div class="screen" id="screen-projects">
-  <div class="topbar">
-    <div><div class="topbar-title">Projects</div><div class="topbar-sub" id="projCount">Loading...</div></div>
-    <div class="icon-btn accent" onclick="openProjectForm(null)">➕</div>
-  </div>
-  <div class="screen-body" id="body-projects" style="padding:16px 16px 0;"><div class="loading-center"><div class="spinner"></div></div></div>
-</div>
-
-<!-- PROJECT FORM -->
-<div class="screen" id="screen-project-form">
-  <div class="topbar">
-    <div class="icon-btn" onclick="closeScreen('project-form')">←</div>
-    <div class="topbar-title" id="formTitle">New Project</div>
-    <div style="width:36px;"></div>
-  </div>
-  <div class="screen-body"><div class="form-body">
-    <div class="field">
-      <label>Cover Image</label>
-      <div class="img-picker" id="imgPicker" onclick="pickImage()">
-        <div style="font-size:32px;color:var(--text3);">🖼️</div>
-        <div class="img-picker-label">Tap to add cover image</div>
-        <div class="img-picker-sub">From camera or gallery</div>
-      </div>
-      <input type="file" id="imgInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
-    </div>
-    <div class="field"><label>Project Title *</label><input type="text" id="fTitle" placeholder="e.g. Euro Live"></div>
-    <div class="field"><label>Description</label><textarea id="fDesc" rows="4" placeholder="What does this project do?"></textarea></div>
-    <div class="field"><label>Live URL</label><input type="url" id="fLive" placeholder="https://myproject.com"></div>
-    <div class="field"><label>GitHub URL</label><input type="url" id="fGithub" placeholder="https://github.com/..."></div>
-    <div class="field"><label>Tags (comma separated)</label><input type="text" id="fTags" placeholder="HTML, CSS, JavaScript"></div>
-    <div class="field"><label>Status</label>
-      <div class="status-pills">
-        <div class="status-pill active" data-status="Live" onclick="selectStatus(this)">Live</div>
-        <div class="status-pill" data-status="Draft" onclick="selectStatus(this)">Draft</div>
-        <div class="status-pill" data-status="Archived" onclick="selectStatus(this)">Archived</div>
-      </div>
-    </div>
-    <button class="btn-primary" id="saveBtn" onclick="saveProject()"><span id="saveBtnText">Save Project</span></button>
-    <button class="btn-ghost" onclick="closeScreen('project-form')">Cancel</button>
-  </div></div>
-</div>
-
-<!-- SECTIONS -->
-<div class="screen" id="screen-sections">
-  <div class="topbar"><div><div class="topbar-title">Sections</div><div class="topbar-sub">Edit your site content</div></div></div>
-  <div class="screen-body" id="body-sections" style="padding:16px;"><div class="loading-center"><div class="spinner"></div></div></div>
-</div>
-
-<!-- SECTION EDITOR -->
-<div class="screen" id="screen-section-editor">
-  <div class="topbar">
-    <div class="icon-btn" onclick="closeScreen('section-editor')">←</div>
-    <div class="topbar-title" id="sectionEditorTitle">Edit Section</div>
-    <div style="width:36px;"></div>
-  </div>
-  <div class="screen-body"><div class="form-body">
-    <div style="background:var(--accentS);border:1px solid rgba(110,87,255,0.2);border-radius:10px;padding:12px;margin-bottom:20px;font-size:13px;color:var(--text2);line-height:1.6;">
-      💡 Changes go live on your portfolio site immediately after saving.
-    </div>
-    <div id="sectionFields"></div>
-    <button class="btn-primary" id="sectionSaveBtn" onclick="saveSectionEdit()">Save Changes</button>
-    <button class="btn-ghost" onclick="closeScreen('section-editor')">Cancel</button>
-  </div></div>
-</div>
-
-<!-- MESSAGES -->
-<div class="screen" id="screen-messages">
-  <div class="topbar"><div><div class="topbar-title">Messages</div><div class="topbar-sub" id="unreadLabel">Loading...</div></div></div>
-  <div class="screen-body" id="body-messages" style="padding:16px;"><div class="loading-center"><div class="spinner"></div></div></div>
-</div>
-
-<!-- MESSAGE DETAIL -->
-<div class="screen" id="screen-msg-detail">
-  <div class="topbar">
-    <div class="icon-btn" onclick="closeScreen('msg-detail')">←</div>
-    <div class="topbar-title">Message</div>
-    <div class="icon-btn" style="color:var(--danger);" onclick="deleteCurrentMsg()">🗑</div>
-  </div>
-  <div class="screen-body"><div style="padding:16px;" id="msgDetailBody"></div></div>
-</div>
-
-<!-- SETTINGS -->
-<div class="screen" id="screen-settings">
-  <div class="topbar"><div><div class="topbar-title">Settings</div><div class="topbar-sub">Roy CMS</div></div></div>
-  <div class="screen-body" style="padding:16px;">
-    <div class="settings-group">
-      <div class="section-label">Security</div>
-      <div class="settings-row">
-        <div class="settings-item" onclick="resetPin()">
-          <div class="settings-icon" style="background:rgba(245,158,11,0.15);">🔑</div>
-          <div><div class="settings-label">Change PIN</div><div class="settings-sub">Reset your 4-digit PIN</div></div>
-          <div class="settings-arrow">›</div>
-        </div>
-        <div class="settings-item" onclick="lockApp()">
-          <div class="settings-icon" style="background:var(--accentS);">🔒</div>
-          <div><div class="settings-label">Lock App</div><div class="settings-sub">Return to PIN screen</div></div>
-          <div class="settings-arrow">›</div>
-        </div>
-      </div>
-    </div>
-    <div class="settings-group">
-      <div class="section-label">Notifications</div>
-      <div class="settings-row">
-        <div class="settings-item" onclick="requestNotifPermission()">
-          <div class="settings-icon" style="background:rgba(61,219,164,0.12);">🔔</div>
-          <div><div class="settings-label">Push Notifications</div><div class="settings-sub" id="notifStatus">Tap to enable</div></div>
-          <div class="settings-arrow">›</div>
-        </div>
-      </div>
-    </div>
-    <div class="settings-group">
-      <div class="section-label">Firebase</div>
-      <div class="settings-row">
-        <div class="settings-item">
-          <div class="settings-icon" style="background:rgba(249,115,22,0.15);">🔥</div>
-          <div><div class="settings-label">Project</div><div class="settings-sub">roychid-terminal</div></div>
-        </div>
-      </div>
-    </div>
-    <div class="settings-group">
-      <div class="section-label">App</div>
-      <div class="settings-row">
-        <div class="settings-item">
-          <div class="settings-icon" style="background:var(--accentS);">📱</div>
-          <div><div class="settings-label">Roy CMS</div><div class="settings-sub">Version 1.0.0 · Personal use</div></div>
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
-<div class="install-banner" id="installBanner">
-  <div style="font-size:28px;">📲</div>
-  <div class="install-banner-text"><strong>Install Roy CMS</strong>Add to your home screen for the full app experience.</div>
-  <button class="install-btn" onclick="installApp()">Install</button>
-  <button class="install-dismiss" onclick="dismissInstall()">✕</button>
-</div>
-
-<script>
-// ═══════════════════════════════════════════
-// FIREBASE — paste your config here
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
+// FIREBASE
+// ══════════════════════════════════════
 firebase.initializeApp({
   apiKey:            "AIzaSyBRsenqkz6y8X9qv1kkp2lm9Ud3UzdOQ5A",
   authDomain:        "roychid-terminal.firebaseapp.com",
@@ -410,472 +341,846 @@ firebase.initializeApp({
 });
 const db      = firebase.firestore();
 const storage = firebase.storage();
+const ts      = () => firebase.firestore.FieldValue.serverTimestamp();
 
-// ═══════════════════════════════════════════
-// STATE
-// ═══════════════════════════════════════════
-let currentTab  = 'dash';
-let screenStack = [];
-let _projects   = [];
-let _sections   = {};
-let _messages   = [];
-let _lastUnread = 0;
-let _editProject = null;
-let _editSection = null;
-let _currentMsg  = null;
-let _imgFile     = null;
-
-// ═══════════════════════════════════════════
-// PIN
-// ═══════════════════════════════════════════
-let pinBuf  = '';
-let pinMode = 'enter';
-let pinConf = '';
-
-function getPin()   { return localStorage.getItem('rpin'); }
-function savePin(p) { localStorage.setItem('rpin', p); }
-function clearPin() { localStorage.removeItem('rpin'); }
-
-function initLock() {
-  if (!getPin()) {
-    pinMode = 'set';
-    document.getElementById('lockTitle').textContent = 'Create a PIN';
-    document.getElementById('lockSub').textContent   = 'Set a 4-digit PIN to protect your CMS';
-  }
-}
-
-function pressKey(k) {
-  if (k === 'del') { pinBuf = pinBuf.slice(0,-1); dots(); return; }
-  if (pinBuf.length >= 4) return;
-  pinBuf += k; dots();
-  if (pinBuf.length === 4) setTimeout(handlePin, 120);
-}
-
-function dots() {
-  for (let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i < pinBuf.length);
-}
-
-function handlePin() {
-  if (pinMode === 'set') {
-    pinConf = pinBuf; pinBuf = ''; dots(); pinMode = 'confirm';
-    document.getElementById('lockTitle').textContent = 'Confirm PIN';
-    document.getElementById('lockSub').textContent   = 'Enter your PIN again to confirm';
-    document.getElementById('pinError').textContent  = '';
-  } else if (pinMode === 'confirm') {
-    if (pinBuf === pinConf) { savePin(pinBuf); unlock(); }
-    else {
-      pinBuf = ''; pinConf = ''; pinMode = 'set'; dots();
-      document.getElementById('lockTitle').textContent = 'Create a PIN';
-      document.getElementById('lockSub').textContent   = "PINs didn't match. Try again.";
-      shake();
+// ══════════════════════════════════════
+// LUCIDE ICON WRAPPER
+// ══════════════════════════════════════
+function Icon({ name, size=20, color, className='' }) {
+  const ref = useRef(null);
+  useEffect(() => {
+    if (ref.current && window.lucide) {
+      ref.current.innerHTML = '';
+      const icons = window.lucide;
+      const key   = name.replace(/-./g, x => x[1].toUpperCase());
+      if (icons[key]) {
+        const el = document.createElement('div');
+        el.innerHTML = icons[key].toSvg({ width: size, height: size, color: color || 'currentColor', 'stroke-width': 1.8 });
+        ref.current.appendChild(el.firstChild);
+      }
     }
-  } else {
-    if (pinBuf === getPin()) { unlock(); }
-    else { pinBuf = ''; dots(); document.getElementById('pinError').textContent = 'Incorrect PIN'; shake(); }
-  }
+  }, [name, size, color]);
+  return <span ref={ref} className={className} style={{ display:'flex', alignItems:'center', justifyContent:'center' }} />;
 }
 
-function shake() {
-  const el = document.getElementById('pinDots');
-  el.classList.add('shake');
-  el.addEventListener('animationend', () => el.classList.remove('shake'), {once:true});
-}
-
-function unlock() {
-  document.getElementById('lockScreen').classList.add('hidden');
-  document.getElementById('tabBar').style.display = 'flex';
-  currentTab = 'dash';
-  setGreeting();
-  checkNotif();
-  initData();
-}
-
-function lockApp() {
-  document.getElementById('lockScreen').classList.remove('hidden');
-  document.getElementById('tabBar').style.display = 'none';
-  pinBuf = ''; pinMode = 'enter'; dots();
-  document.getElementById('pinError').textContent = '';
-}
-
-function resetPin() {
-  if (!confirm('Reset your PIN?')) return;
-  clearPin(); lockApp(); pinMode = 'set';
-  document.getElementById('lockTitle').textContent = 'Create a PIN';
-  document.getElementById('lockSub').textContent   = 'Set a new 4-digit PIN';
-}
-
-// ═══════════════════════════════════════════
-// NAVIGATION
-// ═══════════════════════════════════════════
-function switchTab(tab) {
-  screenStack = [];
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active','behind','root'));
-  document.getElementById('screen-'+tab).classList.add('root');
-  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-'+tab).classList.add('active');
-  currentTab = tab;
-  if (tab==='projects') renderProjects();
-  if (tab==='sections') renderSections();
-  if (tab==='messages') renderMessages();
-}
-
-function pushScreen(name) {
-  const cur = document.getElementById('screen-'+(screenStack.length ? screenStack[screenStack.length-1] : currentTab));
-  if (cur) { cur.classList.remove('root','active'); cur.classList.add('behind'); }
-  screenStack.push(name);
-  document.getElementById('screen-'+name).classList.add('active');
-}
-
-function closeScreen(name) {
-  document.getElementById('screen-'+name).classList.remove('active');
-  screenStack.pop();
-  const prev = screenStack.length ? screenStack[screenStack.length-1] : currentTab;
-  const el   = document.getElementById('screen-'+prev);
-  el.classList.remove('behind');
-  el.classList.add(screenStack.length ? 'active' : 'root');
-}
-
-// ═══════════════════════════════════════════
-// DATA
-// ═══════════════════════════════════════════
-function initData() {
-  loadStats();
-  loadProjects();
-  loadSections();
-  db.collection('messages').orderBy('createdAt','desc').onSnapshot(snap => {
-    _messages = snap.docs.map(d => ({id:d.id,...d.data()})).filter(m => !m.placeholder);
-    const unread = _messages.filter(m => !m.read).length;
-    updateBadge(unread);
-    if (currentTab==='messages') renderMessages();
-    if (currentTab==='dash')     renderDashMessages();
-    if (unread > _lastUnread)    showLocalNotif('New message!','Someone filled your contact form.');
-    _lastUnread = unread;
-  });
-}
-
-async function loadStats() {
-  try {
-    const [ps,ms] = await Promise.all([db.collection('projects').get(), db.collection('messages').get()]);
-    const projs = ps.docs.filter(d=>!d.data().placeholder);
-    const msgs  = ms.docs.filter(d=>!d.data().placeholder);
-    const unr   = msgs.filter(d=>!d.data().read).length;
-    document.getElementById('statProjects').textContent = projs.length;
-    document.getElementById('statMessages').textContent = msgs.length;
-    document.getElementById('statUnread').textContent   = unr;
-    document.getElementById('projCount').textContent    = projs.length+' project'+(projs.length!==1?'s':'');
-    renderDashProjects(projs.slice(0,3).map(d=>({id:d.id,...d.data()})));
-  } catch(e){ console.error('stats',e); }
-}
-
-async function loadProjects() {
-  try {
-    const snap = await db.collection('projects').orderBy('order','asc').get();
-    _projects  = snap.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.placeholder);
-    if (currentTab==='projects') renderProjects();
-  } catch(e){ console.error('projects',e); }
-}
-
-async function loadSections() {
-  try {
-    const snap = await db.collection('sections').get();
-    _sections  = {};
-    snap.docs.forEach(d=>{ _sections[d.id]=d.data(); });
-    if (currentTab==='sections') renderSections();
-  } catch(e){ console.error('sections',e); }
-}
-
-// ═══════════════════════════════════════════
-// RENDER
-// ═══════════════════════════════════════════
-function renderProjects() {
-  const body = document.getElementById('body-projects');
-  if (!_projects.length) { body.innerHTML='<div class="empty"><div class="empty-icon">📂</div><div class="empty-title">No projects yet</div><div class="empty-sub">Tap ➕ to add your first project</div></div>'; return; }
-  body.innerHTML = _projects.map(p=>`
-    <div class="proj-card">
-      <div class="proj-cover">${p.imageUrl?`<img src="${p.imageUrl}" alt="${p.title}">`:'🖼️'}</div>
-      <div class="proj-body">
-        <div class="proj-top">
-          <div class="proj-name">${p.title}</div>
-          <span class="item-badge" style="background:${p.status==='Live'?'var(--greenS)':'var(--accentS)'};color:${p.status==='Live'?'var(--green)':'var(--accent)'};">${p.status||'Live'}</span>
-        </div>
-        <div class="proj-desc">${p.description||''}</div>
-        <div class="tags-row">${(p.tags||[]).map(t=>'<span class="tag">'+t+'</span>').join('')}</div>
-        <div class="proj-actions">
-          <button class="proj-btn" onclick="openProjectForm('${p.id}')">✏️ Edit</button>
-          ${p.liveUrl?`<button class="proj-btn primary" onclick="window.open('${p.liveUrl}','_blank')">🔗 View</button>`:''}
-          <button class="proj-btn danger" onclick="confirmDel('${p.id}','${(p.title||'').replace(/'/g,"\\'")}')">🗑</button>
-        </div>
-      </div>
-    </div>`).join('');
-}
-
-function renderDashProjects(ps) {
-  const el = document.getElementById('recentProjects');
-  if (!ps.length) { el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:8px;">No projects yet</div>'; return; }
-  el.innerHTML = ps.map(p=>`
-    <div class="item-row">
-      <div class="item-dot" style="background:var(--accent);"></div>
-      <div style="flex:1;"><div class="item-title">${p.title}</div><div class="item-sub">${(p.description||'').slice(0,50)}...</div></div>
-      <span class="item-badge" style="background:var(--greenS);color:var(--green);">${p.status||'Live'}</span>
-    </div>`).join('');
-}
-
-function renderSections() {
-  const body  = document.getElementById('body-sections');
-  const keys  = Object.keys(_sections);
-  const icons = {hero:'🏠',about:'👤',skills:'⚡',contact:'📧'};
-  if (!keys.length) { body.innerHTML='<div class="empty"><div class="empty-icon">📝</div><div class="empty-title">No sections found</div><div class="empty-sub">Add hero, about, skills docs to Firestore sections collection</div></div>'; return; }
-  body.innerHTML = keys.map(k=>`
-    <div class="section-item" onclick="openSectionEditor('${k}')">
-      <div class="section-item-icon">${icons[k]||'📄'}</div>
-      <div style="flex:1;"><div class="section-item-name">${k.charAt(0).toUpperCase()+k.slice(1)}</div><div class="section-item-sub">${Object.keys(_sections[k]).length} fields</div></div>
-      <div style="color:var(--text3);font-size:18px;">›</div>
-    </div>`).join('');
-}
-
-function openSectionEditor(key) {
-  _editSection = key;
-  const data   = _sections[key]||{};
-  document.getElementById('sectionEditorTitle').textContent = key.charAt(0).toUpperCase()+key.slice(1)+' Section';
-  document.getElementById('sectionFields').innerHTML = Object.keys(data).map(f=>`
-    <div class="field">
-      <label>${f.replace(/_/g,' ').toUpperCase()}</label>
-      ${f.includes('para')||String(data[f]).length>80
-        ?`<textarea id="sf_${f}" rows="4">${data[f]||''}</textarea>`
-        :`<input type="text" id="sf_${f}" value="${String(data[f]||'').replace(/"/g,'&quot;')}">`}
-    </div>`).join('');
-  pushScreen('section-editor');
-}
-
-async function saveSectionEdit() {
-  const data    = _sections[_editSection]||{};
-  const updated = {};
-  Object.keys(data).forEach(f=>{ const el=document.getElementById('sf_'+f); if(el) updated[f]=el.value; });
-  const btn = document.getElementById('sectionSaveBtn');
-  btn.disabled=true; btn.textContent='Saving…';
-  try {
-    await db.collection('sections').doc(_editSection).update({...updated, updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
-    _sections[_editSection]={...data,...updated};
-    showToast('Section saved ✓','success');
-    closeScreen('section-editor');
-  } catch(e){ showToast('Save failed','error'); console.error(e); }
-  finally{ btn.disabled=false; btn.textContent='Save Changes'; }
-}
-
-function renderMessages() {
-  const body   = document.getElementById('body-messages');
-  const unread = _messages.filter(m=>!m.read).length;
-  document.getElementById('unreadLabel').textContent = unread?unread+' unread':'All caught up ✓';
-  if (!_messages.length) { body.innerHTML='<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><div class="empty-sub">Messages from your contact form appear here in real time</div></div>'; return; }
-  body.innerHTML = _messages.map(m=>`
-    <div class="msg-card ${m.read?'':'unread'}" onclick="openMessage('${m.id}')">
-      <div class="msg-avatar">${(m.name||'U')[0].toUpperCase()}</div>
-      <div class="msg-info">
-        <div class="msg-top"><div class="msg-name">${m.name||'Unknown'}</div><div class="msg-time">${fmtTime(m.createdAt)}</div></div>
-        ${m.subject?`<div class="msg-subject">${m.subject}</div>`:''}
-        <div class="msg-preview">${m.message||''}</div>
-      </div>
-      ${!m.read?'<div class="unread-dot"></div>':''}
-    </div>`).join('');
-}
-
-function renderDashMessages() {
-  const el   = document.getElementById('recentMessages');
-  const msgs = _messages.slice(0,3);
-  if (!msgs.length) { el.innerHTML='<div style="color:var(--text3);font-size:13px;text-align:center;padding:8px;">No messages yet</div>'; return; }
-  el.innerHTML = msgs.map(m=>`
-    <div class="item-row" onclick="openMessage('${m.id}')" style="cursor:pointer;">
-      <div class="msg-avatar">${(m.name||'U')[0].toUpperCase()}</div>
-      <div style="flex:1;min-width:0;">
-        <div style="display:flex;justify-content:space-between;"><div class="item-title">${m.name||'Unknown'}</div>${!m.read?'<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);"></div>':''}</div>
-        <div class="item-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.message||''}</div>
-      </div>
-    </div>`).join('');
-}
-
-async function openMessage(id) {
-  const m = _messages.find(x=>x.id===id); if(!m) return;
-  _currentMsg = m;
-  document.getElementById('msgDetailBody').innerHTML = `
-    <div class="msg-detail-header">
-      <div class="msg-avatar" style="width:44px;height:44px;font-size:16px;">${(m.name||'U')[0].toUpperCase()}</div>
-      <div><div style="font-size:16px;font-weight:600;color:var(--text);">${m.name||'Unknown'}</div><div style="font-size:13px;color:var(--text2);">${m.email||''}</div></div>
-      <div style="margin-left:auto;font-size:12px;color:var(--text3);">${fmtTime(m.createdAt)}</div>
-    </div>
-    ${m.subject?`<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Subject</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;">${m.subject}</div>`:''}
-    <div class="msg-detail-body">${m.message||''}</div>
-    <div class="reply-row">
-      ${m.email?`<button class="reply-btn" style="background:var(--accent);" onclick="location.href='mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject||'Your message')}'">✉️ Reply</button>`:''}
-      ${m.phone?`<button class="reply-btn" style="background:#25D366;" onclick="window.open('https://wa.me/${m.phone.replace(/\D/g,'')}','_blank')">💬 WhatsApp</button>`:''}
-    </div>`;
-  pushScreen('msg-detail');
-  if (!m.read) db.collection('messages').doc(id).update({read:true});
-}
-
-async function deleteCurrentMsg() {
-  if (!_currentMsg||!confirm('Delete message from '+_currentMsg.name+'?')) return;
-  await db.collection('messages').doc(_currentMsg.id).delete();
-  closeScreen('msg-detail');
-  showToast('Message deleted','success');
-}
-
-// ═══════════════════════════════════════════
-// PROJECT FORM
-// ═══════════════════════════════════════════
-function openProjectForm(id) {
-  _editProject = id ? (_projects.find(p=>p.id===id)||null) : null;
-  _imgFile = null;
-  document.getElementById('formTitle').textContent   = _editProject?'Edit Project':'New Project';
-  document.getElementById('saveBtnText').textContent = _editProject?'Save Changes':'Save Project';
-  document.getElementById('fTitle').value   = _editProject?.title||'';
-  document.getElementById('fDesc').value    = _editProject?.description||'';
-  document.getElementById('fLive').value    = _editProject?.liveUrl||'';
-  document.getElementById('fGithub').value  = _editProject?.githubUrl||'';
-  document.getElementById('fTags').value    = (_editProject?.tags||[]).join(', ');
-  const picker = document.getElementById('imgPicker');
-  picker.innerHTML = _editProject?.imageUrl
-    ? `<img src="${_editProject.imageUrl}"><div class="img-picker-overlay"><div style="color:#fff;font-size:13px;font-weight:600;">Change Image</div></div>`
-    : '<div style="font-size:32px;color:var(--text3);">🖼️</div><div class="img-picker-label">Tap to add cover image</div><div class="img-picker-sub">From camera or gallery</div>';
-  document.querySelectorAll('.status-pill').forEach(p=>p.classList.toggle('active',p.dataset.status===(_editProject?.status||'Live')));
-  pushScreen('project-form');
-}
-
-function pickImage() { document.getElementById('imgInput').click(); }
-
-function handleImageSelect(e) {
-  const file = e.target.files[0]; if(!file) return;
-  _imgFile = file;
-  document.getElementById('imgPicker').innerHTML =
-    `<img src="${URL.createObjectURL(file)}"><div class="img-picker-overlay"><div style="color:#fff;font-size:13px;font-weight:600;">Change Image</div></div>`;
-}
-
-function selectStatus(el) {
-  document.querySelectorAll('.status-pill').forEach(p=>p.classList.remove('active'));
-  el.classList.add('active');
-}
-
-async function saveProject() {
-  const title = document.getElementById('fTitle').value.trim();
-  if (!title) { showToast('Title is required','error'); return; }
-  const btn = document.getElementById('saveBtn');
-  btn.disabled=true; document.getElementById('saveBtnText').textContent='Saving…';
-  const status   = document.querySelector('.status-pill.active')?.dataset.status||'Live';
-  let imageUrl   = _editProject?.imageUrl||null;
-  let imagePath  = _editProject?.imagePath||null;
-  try {
-    if (_imgFile) {
-      const path = 'projects/'+Date.now()+'_'+_imgFile.name;
-      const ref  = storage.ref(path);
-      await ref.put(_imgFile);
-      imageUrl  = await ref.getDownloadURL();
-      imagePath = path;
-    }
-    const data = {
-      title,
-      description: document.getElementById('fDesc').value.trim(),
-      liveUrl:     document.getElementById('fLive').value.trim(),
-      githubUrl:   document.getElementById('fGithub').value.trim(),
-      tags:        document.getElementById('fTags').value.split(',').map(t=>t.trim()).filter(Boolean),
-      status, imageUrl, imagePath
+// ══════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════
+let _toastFn = null;
+function Toast() {
+  const [state, setState] = useState({ msg:'', type:'', visible:false });
+  const timer = useRef(null);
+  useEffect(() => {
+    _toastFn = (msg, type='') => {
+      clearTimeout(timer.current);
+      setState({ msg, type, visible:true });
+      timer.current = setTimeout(() => setState(s => ({...s, visible:false})), 3000);
     };
-    if (_editProject) {
-      await db.collection('projects').doc(_editProject.id).update({...data, updatedAt:firebase.firestore.FieldValue.serverTimestamp()});
-    } else {
-      await db.collection('projects').add({...data, order:Date.now(), createdAt:firebase.firestore.FieldValue.serverTimestamp()});
-    }
-    _imgFile = null;
-    await Promise.all([loadProjects(), loadStats()]);
-    showToast(_editProject?'Project updated ✓':'Project added ✓','success');
-    closeScreen('project-form');
-  } catch(e){ showToast('Save failed','error'); console.error(e); }
-  finally{ btn.disabled=false; document.getElementById('saveBtnText').textContent=_editProject?'Save Changes':'Save Project'; }
+  }, []);
+  return (
+    <div className={`toast-wrap ${state.visible?'visible':''}`}>
+      <div className={`toast-inner ${state.type==='success'?'s':state.type==='error'?'e':''}`}>{state.msg}</div>
+    </div>
+  );
 }
+const toast = (msg, type) => _toastFn && _toastFn(msg, type);
 
-function confirmDel(id,title) {
-  if (!confirm('Delete "'+title+'"? This cannot be undone.')) return;
-  db.collection('projects').doc(id).delete().then(()=>{ loadProjects(); loadStats(); showToast('Deleted','success'); });
-}
-
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 // HELPERS
-// ═══════════════════════════════════════════
+// ══════════════════════════════════════
 function fmtTime(ts) {
   if (!ts) return '';
-  const d=ts.toDate?ts.toDate():new Date(ts), diff=Date.now()-d;
-  if(diff<60000) return 'Just now';
-  if(diff<3600000) return Math.floor(diff/60000)+'m ago';
-  if(diff<86400000) return Math.floor(diff/3600000)+'h ago';
+  const d = ts.toDate ? ts.toDate() : new Date(ts);
+  const diff = Date.now() - d;
+  if (diff < 60000) return 'Just now';
+  if (diff < 3600000) return Math.floor(diff/60000)+'m ago';
+  if (diff < 86400000) return Math.floor(diff/3600000)+'h ago';
   return d.toLocaleDateString();
 }
 
-function updateBadge(n) {
-  const b=document.getElementById('msgBadge');
-  if(n>0){b.textContent=n;b.style.display='flex';}else b.style.display='none';
+// ══════════════════════════════════════
+// SLIDE NAV HOOK
+// ══════════════════════════════════════
+function useNav(initial='dash') {
+  const [tab, setTab]           = useState(initial);
+  const [stack, setStack]       = useState([]);   // pushed screens
+  const [direction, setDir]     = useState('none');
+
+  const switchTab = useCallback(name => {
+    setDir('none');
+    setStack([]);
+    setTab(name);
+  }, []);
+
+  const push = useCallback(name => {
+    setDir('forward');
+    setStack(s => [...s, name]);
+  }, []);
+
+  const pop = useCallback(() => {
+    setDir('back');
+    setStack(s => s.slice(0,-1));
+  }, []);
+
+  const current = stack.length ? stack[stack.length-1] : tab;
+  return { tab, stack, current, direction, switchTab, push, pop };
 }
 
-function setGreeting() {
-  const h=new Date().getHours(),g=h<12?'Good morning':h<17?'Good afternoon':'Good evening';
-  document.getElementById('dashGreeting').textContent=g+', Roy 👋';
+// ══════════════════════════════════════
+// PIN SCREEN
+// ══════════════════════════════════════
+function PinScreen({ onUnlock }) {
+  const [buf, setBuf]       = useState('');
+  const [mode, setMode]     = useState(() => localStorage.getItem('rpin') ? 'enter' : 'set');
+  const [conf, setConf]     = useState('');
+  const [err, setErr]       = useState('');
+  const [shaking, setShake] = useState(false);
+
+  function shake() {
+    setShake(true);
+    setTimeout(() => setShake(false), 400);
+  }
+
+  function press(k) {
+    if (k === 'del') { setBuf(b => b.slice(0,-1)); return; }
+    if (buf.length >= 4) return;
+    const next = buf + k;
+    setBuf(next);
+    if (next.length === 4) setTimeout(() => handle(next), 120);
+  }
+
+  function handle(pin) {
+    if (mode === 'set') {
+      setConf(pin); setBuf('');
+      setMode('confirm');
+      setErr('');
+    } else if (mode === 'confirm') {
+      if (pin === conf) {
+        localStorage.setItem('rpin', pin);
+        onUnlock();
+      } else {
+        setBuf(''); setConf(''); setMode('set');
+        setErr("PINs didn't match");
+        shake();
+      }
+    } else {
+      if (pin === localStorage.getItem('rpin')) {
+        onUnlock();
+      } else {
+        setBuf(''); setErr('Incorrect PIN'); shake();
+      }
+    }
+  }
+
+  const titles = { set:'Create a PIN', confirm:'Confirm PIN', enter:'Welcome back, Roy' };
+  const subs   = { set:'Set a 4-digit PIN to protect your CMS', confirm:'Enter your PIN again to confirm', enter:'Enter your PIN to continue' };
+
+  return (
+    <div className="lock">
+      <div className="lock-logo">
+        <Icon name="layout-dashboard" size={32} color="#8b5cf6" />
+      </div>
+      <div className="lock-title">{titles[mode]}</div>
+      <div className="lock-sub">{subs[mode]}</div>
+      <div className={`pdots ${shaking?'shaking':''}`}>
+        {[0,1,2,3].map(i => <div key={i} className={`pdot ${i<buf.length?'on':''}`} />)}
+      </div>
+      <div className="perr">{err}</div>
+      <div className="kpad">
+        {['1','2','3','4','5','6','7','8','9','','0','del'].map((k,i) => (
+          <div key={i} className={`kkey ${k===''?'ghost':''}`} onClick={() => k && press(k)}>
+            {k==='del' ? <Icon name="delete" size={20} /> : k}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
-function showToast(msg,type) {
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast show '+(type||'');
-  clearTimeout(window._tt); window._tt=setTimeout(()=>{t.className='toast';},3000);
+// ══════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════
+function Dashboard({ nav, stats, messages }) {
+  const h = new Date().getHours();
+  const greeting = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
+  const recent = messages.slice(0,3);
+
+  return (
+    <div className="screen slide-center" style={{zIndex:5}}>
+      <div className="sbody">
+        <div className="pad2" style={{paddingTop:`calc(20px + env(safe-area-inset-top,0px))`}}>
+          <div className="greeting">{greeting},<br/>Roy 👋</div>
+          <div className="greeting-sub">Portfolio CMS · Personal Dashboard</div>
+
+          <div className="stats-grid">
+            <div className="stat-box" onClick={() => nav.switchTab('projects')}>
+              <div className="stat-ico" style={{background:'var(--accentS)'}}><Icon name="folder" size={18} color="var(--accentL)"/></div>
+              <div className="stat-n">{stats.projects}</div>
+              <div className="stat-l">Projects</div>
+            </div>
+            <div className="stat-box" onClick={() => nav.switchTab('messages')}>
+              <div className="stat-ico" style={{background:'rgba(245,158,11,0.12)'}}><Icon name="mail" size={18} color="var(--amber)"/></div>
+              <div className="stat-n">{stats.messages}</div>
+              <div className="stat-l">Messages</div>
+            </div>
+            <div className="stat-box" onClick={() => nav.switchTab('analytics')}>
+              <div className="stat-ico" style={{background:'rgba(16,185,129,0.12)'}}><Icon name="bar-chart-2" size={18} color="var(--green)"/></div>
+              <div className="stat-n">{stats.visits}</div>
+              <div className="stat-l">Visits</div>
+            </div>
+          </div>
+
+          <div className="slabel">Quick Actions</div>
+          <div className="quick-grid">
+            <div className="qbtn" onClick={() => nav.push('project-form')}>
+              <div className="qbtn-ico" style={{background:'var(--accentS)'}}><Icon name="plus" size={20} color="var(--accentL)"/></div>
+              <div className="qbtn-label">Add Project</div>
+            </div>
+            <div className="qbtn" onClick={() => nav.switchTab('sections')}>
+              <div className="qbtn-ico" style={{background:'rgba(16,185,129,0.12)'}}><Icon name="pencil" size={20} color="var(--green)"/></div>
+              <div className="qbtn-label">Edit Sections</div>
+            </div>
+            <div className="qbtn" onClick={() => nav.switchTab('analytics')}>
+              <div className="qbtn-ico" style={{background:'rgba(245,158,11,0.12)'}}><Icon name="trending-up" size={20} color="var(--amber)"/></div>
+              <div className="qbtn-label">Analytics</div>
+            </div>
+            <div className="qbtn" onClick={() => nav.switchTab('settings')}>
+              <div className="qbtn-ico" style={{background:'rgba(239,68,68,0.12)'}}><Icon name="settings" size={20} color="var(--red)"/></div>
+              <div className="qbtn-label">Settings</div>
+            </div>
+          </div>
+
+          <div className="slabel">Recent Messages</div>
+          <div className="card">
+            {recent.length === 0
+              ? <div style={{color:'var(--text3)',fontSize:13,textAlign:'center',padding:'8px 0'}}>No messages yet</div>
+              : recent.map(m => (
+                <div key={m.id} className="rrow" onClick={() => nav.push('msg-detail:'+m.id)}>
+                  <div className="avatar">{(m.name||'U')[0].toUpperCase()}</div>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="rrow-title">{m.name||'Unknown'}</div>
+                    <div className="rrow-sub" style={{whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{m.message||''}</div>
+                  </div>
+                  {!m.read && <div className="udot"/>}
+                </div>
+              ))
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
 
-function checkNotif() {
-  const card=document.getElementById('notifCard'),st=document.getElementById('notifStatus');
-  if(!('Notification' in window)){if(st)st.textContent='Not supported';return;}
-  if(Notification.permission==='granted'){card.style.display='none';if(st)st.textContent='Enabled ✓';}
-  else if(Notification.permission==='denied'){card.style.display='none';if(st)st.textContent='Blocked in browser settings';}
-  else{card.style.display='flex';if(st)st.textContent='Tap to enable';}
+// ══════════════════════════════════════
+// PROJECTS LIST
+// ══════════════════════════════════════
+function Projects({ nav, projects, reload }) {
+  async function del(id, title) {
+    if (!confirm(`Delete "${title}"?`)) return;
+    const p = projects.find(x => x.id===id);
+    if (p?.imagePath) {
+      try { await storage.ref(p.imagePath).delete(); } catch {}
+    }
+    await db.collection('projects').doc(id).delete();
+    reload();
+    toast('Project deleted','success');
+  }
+
+  return (
+    <div className="screen slide-center" style={{zIndex:5}}>
+      <div className="topbar">
+        <div>
+          <div className="topbar-title">Projects</div>
+          <div className="topbar-sub">{projects.length} project{projects.length!==1?'s':''}</div>
+        </div>
+        <div className="ibtn accent" onClick={() => nav.push('project-form')}>
+          <Icon name="plus" size={20} color="#fff"/>
+        </div>
+      </div>
+      <div className="sbody pad">
+        {projects.length===0
+          ? <div className="empty"><div className="empty-ico"><Icon name="folder-open" size={48}/></div><div className="empty-title">No projects yet</div><div className="empty-sub">Tap + to add your first project</div></div>
+          : projects.map(p => (
+            <div key={p.id} className="pcard">
+              <div className="pcover">
+                {p.imageUrl
+                  ? <img src={p.imageUrl} alt={p.title}/>
+                  : <div className="pcover-placeholder"><Icon name="image" size={32}/><span style={{fontSize:12,color:'var(--text3)'}}>No image</span></div>
+                }
+              </div>
+              <div className="pbody">
+                <div className="ptop">
+                  <div className="pname">{p.title}</div>
+                  <span className="badge" style={{background:p.status==='Live'?'var(--greenS)':'var(--accentS)',color:p.status==='Live'?'var(--green)':'var(--accentL)'}}>{p.status||'Live'}</span>
+                </div>
+                <div className="pdesc">{p.description||''}</div>
+                <div className="tags">{(p.tags||[]).map((t,i)=><span key={i} className="tag">{t}</span>)}</div>
+                <div className="pacts">
+                  <button className="pabtn" onClick={() => nav.push('project-form:'+p.id)}>
+                    <Icon name="pencil" size={13}/> Edit
+                  </button>
+                  {p.liveUrl && <button className="pabtn p" onClick={() => window.open(p.liveUrl,'_blank')}>
+                    <Icon name="external-link" size={13}/> View
+                  </button>}
+                  <button className="pabtn d" onClick={() => del(p.id, p.title)}>
+                    <Icon name="trash-2" size={13}/>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
 }
 
-async function requestNotifPermission() {
-  if(!('Notification' in window)){showToast('Not supported','error');return;}
-  const p=await Notification.requestPermission();
-  checkNotif();
-  showToast(p==='granted'?'Notifications enabled ✓':'Notifications blocked',p==='granted'?'success':'error');
+// ══════════════════════════════════════
+// PROJECT FORM
+// ══════════════════════════════════════
+function ProjectForm({ nav, projects, reload, editId }) {
+  const editing = editId ? projects.find(p=>p.id===editId) : null;
+  const [title,  setTitle]  = useState(editing?.title||'');
+  const [desc,   setDesc]   = useState(editing?.description||'');
+  const [live,   setLive]   = useState(editing?.liveUrl||'');
+  const [github, setGithub] = useState(editing?.githubUrl||'');
+  const [tags,   setTags]   = useState((editing?.tags||[]).join(', '));
+  const [status, setStatus] = useState(editing?.status||'Live');
+  const [imgFile, setImgFile]= useState(null);
+  const [imgPrev, setImgPrev]= useState(editing?.imageUrl||null);
+  const [saving, setSaving] = useState(false);
+
+  async function save() {
+    if (!title.trim()) { toast('Title is required','error'); return; }
+    setSaving(true);
+    let imageUrl  = editing?.imageUrl||null;
+    let imagePath = editing?.imagePath||null;
+    try {
+      if (imgFile) {
+        const path = `projects/${Date.now()}_${imgFile.name}`;
+        const ref  = storage.ref(path);
+        await ref.put(imgFile);
+        imageUrl  = await ref.getDownloadURL();
+        imagePath = path;
+      }
+      const data = {
+        title:title.trim(), description:desc.trim(),
+        liveUrl:live.trim(), githubUrl:github.trim(),
+        tags:tags.split(',').map(t=>t.trim()).filter(Boolean),
+        status, imageUrl, imagePath
+      };
+      if (editing) {
+        await db.collection('projects').doc(editing.id).update({...data, updatedAt:ts()});
+      } else {
+        await db.collection('projects').add({...data, order:Date.now(), createdAt:ts()});
+      }
+      await reload();
+      toast(editing?'Project updated ✓':'Project added ✓','success');
+      nav.pop();
+    } catch(e) { toast('Save failed','error'); console.error(e); }
+    finally { setSaving(false); }
+  }
+
+  return (
+    <div className="screen slide-right" style={{zIndex:20}}>
+      <div className="topbar">
+        <div className="ibtn" onClick={() => nav.pop()}><Icon name="arrow-left" size={20}/></div>
+        <div className="topbar-title">{editing?'Edit Project':'New Project'}</div>
+        <div style={{width:36}}/>
+      </div>
+      <div className="sbody pad2">
+        <div className="field">
+          <label className="field-label">Cover Image</label>
+          <div className="imgpick" onClick={() => document.getElementById('imgInput').click()}>
+            {imgPrev && <img src={imgPrev}/>}
+            {imgPrev
+              ? <div className="imgpick-ov"><span style={{color:'#fff',fontSize:13,fontWeight:600}}>Change Image</span></div>
+              : <><Icon name="image" size={28} color="var(--text3)"/><span style={{fontSize:13,color:'var(--text2)'}}>Tap to add cover image</span></>
+            }
+          </div>
+          <input type="file" id="imgInput" accept="image/*" style={{display:'none'}} onChange={e=>{
+            const f=e.target.files[0]; if(!f) return;
+            setImgFile(f); setImgPrev(URL.createObjectURL(f));
+          }}/>
+        </div>
+        <div className="field"><label className="field-label">Project Title *</label><input className="finput" value={title} onChange={e=>setTitle(e.target.value)} placeholder="e.g. Euro Live"/></div>
+        <div className="field"><label className="field-label">Description</label><textarea className="ftarea" rows={4} value={desc} onChange={e=>setDesc(e.target.value)} placeholder="What does this project do?"/></div>
+        <div className="field"><label className="field-label">Live URL</label><input className="finput" value={live} onChange={e=>setLive(e.target.value)} placeholder="https://myproject.com"/></div>
+        <div className="field"><label className="field-label">GitHub URL</label><input className="finput" value={github} onChange={e=>setGithub(e.target.value)} placeholder="https://github.com/..."/></div>
+        <div className="field"><label className="field-label">Tags (comma separated)</label><input className="finput" value={tags} onChange={e=>setTags(e.target.value)} placeholder="HTML, CSS, JavaScript"/></div>
+        <div className="field">
+          <label className="field-label">Status</label>
+          <div className="spills">
+            {['Live','Draft','Archived'].map(s=><div key={s} className={`spill ${status===s?'on':''}`} onClick={()=>setStatus(s)}>{s}</div>)}
+          </div>
+        </div>
+        <button className="btn-a" onClick={save} disabled={saving}>
+          {saving ? <div className="spin"/> : (editing?'Save Changes':'Save Project')}
+        </button>
+        <button className="btn-g" onClick={() => nav.pop()}>Cancel</button>
+      </div>
+    </div>
+  );
 }
 
-function showLocalNotif(title,body) {
-  if(Notification.permission!=='granted'||document.visibilityState==='visible') return;
-  new Notification(title,{body,icon:'icons/icon-192.png'});
+// ══════════════════════════════════════
+// SECTIONS
+// ══════════════════════════════════════
+function Sections({ nav, sections }) {
+  const icons = { hero:'home', about:'user', skills:'zap', contact:'mail' };
+  const keys  = Object.keys(sections);
+  return (
+    <div className="screen slide-center" style={{zIndex:5}}>
+      <div className="topbar">
+        <div><div className="topbar-title">Sections</div><div className="topbar-sub">Edit your site content</div></div>
+      </div>
+      <div className="sbody pad">
+        {keys.length===0
+          ? <div className="empty"><div className="empty-ico"><Icon name="layout" size={48}/></div><div className="empty-title">No sections found</div><div className="empty-sub">Add hero, about, skills documents to Firestore</div></div>
+          : keys.map(k => (
+            <div key={k} className="secitem" onClick={() => nav.push('section-editor:'+k)}>
+              <div className="secico"><Icon name={icons[k]||'file-text'} size={22}/></div>
+              <div style={{flex:1}}>
+                <div style={{fontSize:15,fontWeight:600,color:'var(--text)'}}>{k.charAt(0).toUpperCase()+k.slice(1)}</div>
+                <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>{Object.keys(sections[k]).length} fields</div>
+              </div>
+              <Icon name="chevron-right" size={18} color="var(--text3)"/>
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
 }
 
-// ═══════════════════════════════════════════
-// INSTALL
-// ═══════════════════════════════════════════
-let _deferredInstall=null;
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault(); _deferredInstall=e;
-  if(!localStorage.getItem('install_dismissed'))
-    setTimeout(()=>document.getElementById('installBanner').classList.add('show'),3000);
-});
-async function installApp(){
-  if(!_deferredInstall) return;
-  _deferredInstall.prompt();
-  const{outcome}=await _deferredInstall.userChoice;
-  if(outcome==='accepted') showToast('App installed! ✓','success');
-  document.getElementById('installBanner').classList.remove('show');
-  _deferredInstall=null;
-}
-function dismissInstall(){
-  document.getElementById('installBanner').classList.remove('show');
-  localStorage.setItem('install_dismissed','1');
+// ══════════════════════════════════════
+// SECTION EDITOR
+// ══════════════════════════════════════
+function SectionEditor({ nav, sections, setSections, sectionKey }) {
+  const data  = sections[sectionKey]||{};
+  const [vals, setVals] = useState({...data});
+  const [saving, setSav]= useState(false);
+
+  async function save() {
+    setSav(true);
+    try {
+      await db.collection('sections').doc(sectionKey).update({...vals, updatedAt:ts()});
+      setSections(s => ({...s, [sectionKey]:{...s[sectionKey],...vals}}));
+      toast('Section saved ✓','success');
+      nav.pop();
+    } catch(e) { toast('Save failed','error'); }
+    finally { setSav(false); }
+  }
+
+  return (
+    <div className="screen slide-right" style={{zIndex:20}}>
+      <div className="topbar">
+        <div className="ibtn" onClick={() => nav.pop()}><Icon name="arrow-left" size={20}/></div>
+        <div className="topbar-title">{sectionKey.charAt(0).toUpperCase()+sectionKey.slice(1)}</div>
+        <div style={{width:36}}/>
+      </div>
+      <div className="sbody pad2">
+        <div className="hint">💡 Changes go live on your portfolio site immediately after saving.</div>
+        {Object.keys(data).map(f => (
+          <div key={f} className="field">
+            <label className="field-label">{f.replace(/_/g,' ')}</label>
+            {f.includes('para')||String(data[f]).length>80
+              ? <textarea className="ftarea" rows={4} value={vals[f]||''} onChange={e=>setVals(v=>({...v,[f]:e.target.value}))}/>
+              : <input className="finput" value={String(vals[f]||'')} onChange={e=>setVals(v=>({...v,[f]:e.target.value}))}/>
+            }
+          </div>
+        ))}
+        <button className="btn-a" onClick={save} disabled={saving}>
+          {saving ? <div className="spin"/> : 'Save Changes'}
+        </button>
+        <button className="btn-g" onClick={() => nav.pop()}>Cancel</button>
+      </div>
+    </div>
+  );
 }
 
-// ═══════════════════════════════════════════
-// SERVICE WORKER
-// ═══════════════════════════════════════════
-if('serviceWorker' in navigator)
-  navigator.serviceWorker.register('service-worker.js').catch(e=>console.log('SW:',e));
+// ══════════════════════════════════════
+// MESSAGES
+// ══════════════════════════════════════
+function Messages({ nav, messages }) {
+  const unread = messages.filter(m=>!m.read).length;
+  return (
+    <div className="screen slide-center" style={{zIndex:5}}>
+      <div className="topbar">
+        <div>
+          <div className="topbar-title">Messages</div>
+          <div className="topbar-sub">{unread?`${unread} unread`:'All caught up ✓'}</div>
+        </div>
+      </div>
+      <div className="sbody pad">
+        {messages.length===0
+          ? <div className="empty"><div className="empty-ico"><Icon name="message-square" size={48}/></div><div className="empty-title">No messages yet</div><div className="empty-sub">Messages from your contact form appear here in real time</div></div>
+          : messages.map(m => (
+            <div key={m.id} className={`mcard ${m.read?'':'unread'}`} onClick={() => nav.push('msg-detail:'+m.id)}>
+              <div className="avatar">{(m.name||'U')[0].toUpperCase()}</div>
+              <div className="minfo">
+                <div className="mtop"><div className="mname">{m.name||'Unknown'}</div><div className="mtime">{fmtTime(m.createdAt)}</div></div>
+                {m.subject && <div className="msubj">{m.subject}</div>}
+                <div className="mprev">{m.message||''}</div>
+              </div>
+              {!m.read && <div className="udot"/>}
+            </div>
+          ))
+        }
+      </div>
+    </div>
+  );
+}
 
-// ═══════════════════════════════════════════
-// START — everything in one script, no timing issues
-// ═══════════════════════════════════════════
-initLock();
+// ══════════════════════════════════════
+// MESSAGE DETAIL
+// ══════════════════════════════════════
+function MsgDetail({ nav, messages, msgId }) {
+  const m = messages.find(x=>x.id===msgId);
+  useEffect(() => {
+    if (m && !m.read) db.collection('messages').doc(m.id).update({read:true});
+  }, [msgId]);
+
+  async function del() {
+    if (!m||!confirm('Delete message from '+m.name+'?')) return;
+    await db.collection('messages').doc(m.id).delete();
+    nav.pop(); toast('Message deleted','success');
+  }
+
+  if (!m) return null;
+  return (
+    <div className="screen slide-right" style={{zIndex:20}}>
+      <div className="topbar">
+        <div className="ibtn" onClick={() => nav.pop()}><Icon name="arrow-left" size={20}/></div>
+        <div className="topbar-title">Message</div>
+        <div className="ibtn" style={{color:'var(--red)'}} onClick={del}><Icon name="trash-2" size={18}/></div>
+      </div>
+      <div className="sbody pad">
+        <div className="card" style={{display:'flex',gap:14,alignItems:'center',marginBottom:12}}>
+          <div className="avatar" style={{width:48,height:48,fontSize:18}}>{(m.name||'U')[0].toUpperCase()}</div>
+          <div>
+            <div style={{fontSize:16,fontWeight:700,color:'var(--text)'}}>{m.name}</div>
+            <div style={{fontSize:13,color:'var(--text2)'}}>{m.email}</div>
+          </div>
+          <div style={{marginLeft:'auto',fontSize:12,color:'var(--text3)'}}>{fmtTime(m.createdAt)}</div>
+        </div>
+        {m.subject && <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:6}}>Subject</div>}
+        {m.subject && <div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginBottom:16}}>{m.subject}</div>}
+        <div className="card" style={{fontSize:14,color:'var(--text)',lineHeight:1.8,marginBottom:12}}>{m.message}</div>
+        <div style={{display:'flex',gap:10}}>
+          {m.email && <button style={{flex:1,padding:13,borderRadius:12,border:'none',background:'var(--accent)',color:'#fff',fontFamily:'Inter',fontSize:14,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}} onClick={()=>window.location.href=`mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject||'Your message')}`}>
+            <Icon name="mail" size={16} color="#fff"/> Reply
+          </button>}
+          {m.phone && <button style={{flex:1,padding:13,borderRadius:12,border:'none',background:'#25D366',color:'#fff',fontFamily:'Inter',fontSize:14,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}} onClick={()=>window.open(`https://wa.me/${m.phone.replace(/\D/g,'')}`)}>
+            <Icon name="message-circle" size={16} color="#fff"/> WhatsApp
+          </button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════
+function Analytics({ nav }) {
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load() {
+      try {
+        const snap = await db.collection('analytics').get();
+        const visits = snap.docs.map(d => d.data());
+        // Aggregate
+        const total    = visits.length;
+        const pages    = {};
+        const countries= {};
+        visits.forEach(v => {
+          const p = v.page||'/'; pages[p] = (pages[p]||0)+1;
+          const c = v.country||'Unknown'; countries[c] = (countries[c]||0)+1;
+        });
+        const pageList = Object.entries(pages).sort((a,b)=>b[1]-a[1]).slice(0,6);
+        const countryList = Object.entries(countries).sort((a,b)=>b[1]-a[1]).slice(0,6);
+        setData({ total, pageList, countryList });
+      } catch(e) { console.error(e); setData({ total:0, pageList:[], countryList:[] }); }
+      finally { setLoading(false); }
+    }
+    load();
+  }, []);
+
+  const maxPage    = data?.pageList[0]?.[1]||1;
+  const maxCountry = data?.countryList[0]?.[1]||1;
+
+  const flagMap = { 'Zimbabwe':'🇿🇼','United States':'🇺🇸','United Kingdom':'🇬🇧','South Africa':'🇿🇦','Nigeria':'🇳🇬','Kenya':'🇰🇪','Canada':'🇨🇦','Australia':'🇦🇺','Germany':'🇩🇪','India':'🇮🇳','Unknown':'🌍' };
+
+  return (
+    <div className="screen slide-center" style={{zIndex:5}}>
+      <div className="topbar">
+        <div><div className="topbar-title">Analytics</div><div className="topbar-sub">Portfolio site traffic</div></div>
+      </div>
+      <div className="sbody pad">
+        {loading
+          ? <div className="spin-center"><div className="spin"/></div>
+          : <>
+            <div className="analytics-hero">
+              <div className="a-big">{data.total.toLocaleString()}</div>
+              <div className="a-sub">Total page visits tracked</div>
+            </div>
+
+            {data.total === 0 && (
+              <div className="hint" style={{marginBottom:16}}>
+                📊 No visits tracked yet. Add the tracking snippet to your portfolio site to start seeing data here.
+                <br/><br/>
+                <strong style={{color:'var(--text)'}}>Add this to every page of your portfolio:</strong>
+              </div>
+            )}
+
+            {data.total === 0 && (
+              <div className="card" style={{marginBottom:16}}>
+                <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',letterSpacing:'0.5px',marginBottom:8,textTransform:'uppercase'}}>Tracking Snippet</div>
+                <pre style={{fontSize:11,color:'var(--accentL)',overflowX:'auto',lineHeight:1.6,background:'var(--bg)',padding:12,borderRadius:8,border:'1px solid var(--border)'}}>{`<script>
+(async()=>{
+  const r=await fetch('https://ipapi.co/json/');
+  const d=await r.json();
+  const {initializeApp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  const {getFirestore,addDoc,collection,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+  const app=initializeApp({projectId:"roychid-terminal",apiKey:"AIzaSyBRsenqkz6y8X9qv1kkp2lm9Ud3UzdOQ5A",authDomain:"roychid-terminal.firebaseapp.com"});
+  const db=getFirestore(app);
+  await addDoc(collection(db,'analytics'),{
+    page:location.pathname,
+    country:d.country_name||'Unknown',
+    city:d.city||'',
+    device:/Mobi|Android/i.test(navigator.userAgent)?'mobile':'desktop',
+    ref:document.referrer||'direct',
+    ts:serverTimestamp()
+  });
+})();
+<\/script>`}</pre>
+              </div>
+            )}
+
+            {data.pageList.length > 0 && (
+              <>
+                <div className="slabel">Top Pages</div>
+                <div className="card">
+                  {data.pageList.map(([page, count]) => (
+                    <div key={page} className="bar-row">
+                      <div className="bar-label" style={{fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{page==='/'?'Home':page}</div>
+                      <div className="bar-track"><div className="bar-fill" style={{width:`${(count/maxPage)*100}%`}}/></div>
+                      <div className="bar-count">{count}</div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="slabel">Visitors by Country</div>
+                <div className="card">
+                  {data.countryList.map(([country, count]) => (
+                    <div key={country} className="bar-row">
+                      <div className="bar-label" style={{display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+                        <span>{flagMap[country]||'🌍'}</span>
+                        <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{country}</span>
+                      </div>
+                      <div className="bar-track"><div className="bar-fill" style={{width:`${(count/maxCountry)*100}%`,background:'var(--green)'}}/></div>
+                      <div className="bar-count">{count}</div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+          </>
+        }
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════
+// SETTINGS
+// ══════════════════════════════════════
+function Settings({ nav, onLock, onResetPin }) {
+  const [notif, setNotif] = useState(Notification?.permission||'default');
+
+  async function reqNotif() {
+    if (!('Notification' in window)) { toast('Not supported on this device','error'); return; }
+    const p = await Notification.requestPermission();
+    setNotif(p);
+    toast(p==='granted'?'Notifications enabled ✓':'Notifications blocked', p==='granted'?'success':'error');
+  }
+
+  const rows = [
+    { group:'Security', items:[
+      { icon:'key',      label:'Change PIN',           sub:'Reset your 4-digit PIN',          action:onResetPin, color:'rgba(245,158,11,0.15)', iconColor:'var(--amber)' },
+      { icon:'lock',     label:'Lock App',             sub:'Return to PIN screen',            action:onLock,     color:'var(--accentS)',         iconColor:'var(--accentL)' },
+    ]},
+    { group:'Notifications', items:[
+      { icon:'bell',     label:'Push Notifications',   sub: notif==='granted'?'Enabled ✓': notif==='denied'?'Blocked in browser settings':'Tap to enable', action:reqNotif, color:'rgba(16,185,129,0.12)', iconColor:'var(--green)' },
+    ]},
+    { group:'Firebase', items:[
+      { icon:'database', label:'Project',              sub:'roychid-terminal',                action:null,       color:'rgba(249,115,22,0.15)',  iconColor:'#f97316' },
+    ]},
+    { group:'App', items:[
+      { icon:'info',     label:'Roy CMS',              sub:'Version 2.0 · Personal use',      action:null,       color:'var(--accentS)',         iconColor:'var(--accentL)' },
+    ]},
+  ];
+
+  return (
+    <div className="screen slide-center" style={{zIndex:5}}>
+      <div className="topbar">
+        <div><div className="topbar-title">Settings</div><div className="topbar-sub">Roy CMS</div></div>
+      </div>
+      <div className="sbody pad">
+        {rows.map(grp => (
+          <div key={grp.group} className="sgroup">
+            <div className="slabel">{grp.group}</div>
+            <div className="srows">
+              {grp.items.map(row => (
+                <div key={row.label} className="srow" onClick={row.action||undefined}>
+                  <div className="srow-ico" style={{background:row.color}}><Icon name={row.icon} size={16} color={row.iconColor}/></div>
+                  <div style={{flex:1}}>
+                    <div className="srow-label">{row.label}</div>
+                    <div className="srow-sub">{row.sub}</div>
+                  </div>
+                  {row.action && <Icon name="chevron-right" size={16} color="var(--text3)"/>}
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ══════════════════════════════════════
+// TAB BAR
+// ══════════════════════════════════════
+function TabBar({ active, onSwitch, unread }) {
+  const tabs = [
+    { id:'dash',      icon:'layout-dashboard', label:'Home'     },
+    { id:'projects',  icon:'folder',           label:'Projects' },
+    { id:'sections',  icon:'pencil',           label:'Site'     },
+    { id:'analytics', icon:'bar-chart-2',      label:'Stats'    },
+    { id:'messages',  icon:'message-square',   label:'Inbox'    },
+  ];
+  return (
+    <div className="tabbar">
+      {tabs.map(t => (
+        <div key={t.id} className={`tabitem ${active===t.id?'active':''}`} onClick={() => onSwitch(t.id)}>
+          <Icon name={t.icon} size={22}/>
+          <div className="tabitem-label">{t.label}</div>
+          {t.id==='messages' && unread>0 && <div className="tab-pip">{unread}</div>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ══════════════════════════════════════
+// ROOT APP
+// ══════════════════════════════════════
+function App() {
+  const [locked,   setLocked]   = useState(true);
+  const [projects, setProjects] = useState([]);
+  const [sections, setSections] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [stats,    setStats]    = useState({ projects:0, messages:0, visits:0 });
+  const nav = useNav('dash');
+
+  // Load data
+  useEffect(() => {
+    if (locked) return;
+    // Projects
+    db.collection('projects').orderBy('order','asc').get()
+      .then(s => setProjects(s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.placeholder)))
+      .catch(console.error);
+    // Sections
+    db.collection('sections').get()
+      .then(s => { const o={}; s.docs.forEach(d=>{o[d.id]=d.data();}); setSections(o); })
+      .catch(console.error);
+    // Analytics count
+    db.collection('analytics').get()
+      .then(s => setStats(prev => ({...prev, visits:s.size})))
+      .catch(()=>{});
+  }, [locked]);
+
+  // Real-time messages
+  useEffect(() => {
+    if (locked) return;
+    const unsub = db.collection('messages').orderBy('createdAt','desc')
+      .onSnapshot(snap => {
+        const msgs = snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.placeholder);
+        setMessages(msgs);
+        setStats(prev => ({...prev, messages:msgs.length, projects:prev.projects}));
+      });
+    return unsub;
+  }, [locked]);
+
+  // Update project count in stats
+  useEffect(() => {
+    setStats(prev => ({...prev, projects:projects.length}));
+  }, [projects]);
+
+  function reloadProjects() {
+    return db.collection('projects').orderBy('order','asc').get()
+      .then(s => setProjects(s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.placeholder)));
+  }
+
+  function unlock() { setLocked(false); }
+  function lock()   { setLocked(true); nav.switchTab('dash'); }
+  function resetPin() {
+    localStorage.removeItem('rpin');
+    lock();
+  }
+
+  const unread = messages.filter(m=>!m.read).length;
+
+  // Parse pushed screen name + optional id
+  const [screenName, screenId] = (nav.stack[nav.stack.length-1]||'').split(':');
+
+  // Determine which root screen is visible
+  function renderRootScreen() {
+    switch(nav.tab) {
+      case 'dash':      return <Dashboard nav={nav} stats={stats} messages={messages}/>;
+      case 'projects':  return <Projects  nav={nav} projects={projects} reload={reloadProjects}/>;
+      case 'sections':  return <Sections  nav={nav} sections={sections}/>;
+      case 'analytics': return <Analytics nav={nav}/>;
+      case 'messages':  return <Messages  nav={nav} messages={messages}/>;
+      case 'settings':  return <Settings  nav={nav} onLock={lock} onResetPin={resetPin}/>;
+      default:          return <Dashboard nav={nav} stats={stats} messages={messages}/>;
+    }
+  }
+
+  // Render pushed screen on top
+  function renderPushedScreen() {
+    if (!screenName) return null;
+    if (screenName === 'project-form')   return <ProjectForm   nav={nav} projects={projects} reload={reloadProjects} editId={screenId||null}/>;
+    if (screenName === 'section-editor') return <SectionEditor nav={nav} sections={sections} setSections={setSections} sectionKey={screenId}/>;
+    if (screenName === 'msg-detail')     return <MsgDetail     nav={nav} messages={messages} msgId={screenId}/>;
+    return null;
+  }
+
+  if (locked) return <PinScreen onUnlock={unlock}/>;
+
+  return (
+    <div className="app">
+      <div className="screens">
+        {renderRootScreen()}
+        {renderPushedScreen()}
+      </div>
+      <TabBar active={nav.tab} onSwitch={nav.switchTab} unread={unread}/>
+      <Toast/>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+
+<script>
+if ('serviceWorker' in navigator)
+  navigator.serviceWorker.register('service-worker.js').catch(()=>{});
 </script>
 </body>
 </html>
