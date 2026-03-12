@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Roy CMS">
+  <meta name="theme-color" content="#080809">
+  <title>Roy CMS</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:      #080809;
+      --bg2:     #0f0f12;
+      --card:    #131317;
+      --card2:   #1a1a20;
+      --border:  #222228;
+      --border2: #2c2c35;
+      --text:    #ededf0;
+      --text2:   #9898a6;
+      --text3:   #55555f;
+      --accent:  #6e57ff;
+      --accentS: rgba(110,87,255,0.15);
+      --green:   #3ddba4;
+      --greenS:  rgba(61,219,164,0.12);
+      --warn:    #f59e0b;
+      --danger:  #ef4444;
+      --safe:    env(safe-area-inset-bottom, 0px);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html, body {
+      height: 100%; width: 100%;
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 15px;
+      line-height: 1.5;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      overscroll-behavior: none;
+    }
+
+    /* ── SCREENS ── */
+    .screen {
+      position: fixed; inset: 0;
+      display: flex; flex-direction: column;
+      background: var(--bg);
+      transform: translateX(100%);
+      transition: transform 0.3s cubic-bezier(.32,.72,0,1);
+      z-index: 10;
+      overflow: hidden;
+    }
+
+    .screen.active  { transform: translateX(0); z-index: 20; }
+    .screen.behind  { transform: translateX(-8%); z-index: 10; }
+    .screen.root    { transform: translateX(0); z-index: 5; }
+
+    /* ── LOCK SCREEN ── */
+    #lockScreen {
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(160deg, #0a0a0f 0%, #13131a 100%);
+    }
+
+    #lockScreen.hidden { display: none; }
+
+    .lock-icon {
+      width: 72px; height: 72px; border-radius: 20px;
+      background: var(--accentS);
+      border: 1px solid rgba(110,87,255,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 30px; margin-bottom: 24px;
+    }
+
+    .lock-title { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+    .lock-sub   { font-size: 13px; color: var(--text2); margin-bottom: 40px; text-align: center; }
+
+    .pin-dots { display: flex; gap: 16px; margin-bottom: 16px; }
+    .pin-dot  { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--border2); background: transparent; transition: all 0.15s; }
+    .pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+
+    .pin-error { font-size: 13px; color: var(--danger); height: 20px; margin-bottom: 16px; text-align: center; }
+
+    .keypad { display: grid; grid-template-columns: repeat(3, 72px); gap: 12px; }
+    .key {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--card);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 22px; font-weight: 500;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.1s, transform 0.1s;
+      user-select: none;
+    }
+
+    .key:active { background: var(--card2); transform: scale(0.93); }
+    .key.empty  { background: transparent; border-color: transparent; pointer-events: none; }
+    .key.del    { font-size: 18px; }
+
+    @keyframes shake {
+      0%,100% { transform: translateX(0); }
+      20%     { transform: translateX(-10px); }
+      40%     { transform: translateX(10px); }
+      60%     { transform: translateX(-8px); }
+      80%     { transform: translateX(8px); }
+    }
+    .shake { animation: shake 0.4s ease; }
+
+    /* ── TAB BAR ── */
+    .tabs {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: calc(60px + var(--safe));
+      padding-bottom: var(--safe);
+      background: var(--card);
+      border-top: 1px solid var(--border);
+      display: flex;
+      z-index: 50;
+    }
+
+    .tab {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 4px;
+      cursor: pointer; transition: opacity 0.15s;
+      padding-top: 8px;
+      position: relative;
+    }
+
+    .tab-icon { font-size: 20px; line-height: 1; }
+    .tab-label { font-size: 10px; font-weight: 500; color: var(--text3); letter-spacing: 0.3px; }
+    .tab.active .tab-label { color: var(--accent); }
+    .tab-badge {
+      position: absolute; top: 6px; right: calc(50% - 16px);
+      min-width: 16px; height: 16px; border-radius: 8px;
+      background: var(--danger);
+      font-size: 10px; font-weight: 700; color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0 4px;
+    }
+
+    /* ── SCROLLABLE BODY ── */
+    .screen-body {
+      flex: 1; overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(70px + var(--safe));
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px 12px;
+      padding-top: calc(16px + env(safe-area-inset-top, 0px));
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+
+    .topbar-title { font-size: 20px; font-weight: 700; color: var(--text); }
+    .topbar-sub   { font-size: 12px; color: var(--text2); margin-top: 1px; }
+
+    .icon-btn {
+      width: 36px; height: 36px; border-radius: 10px;
+      background: var(--card2); border: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; font-size: 18px;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .icon-btn:active { background: var(--border); }
+    .icon-btn.accent { background: var(--accent); border-color: var(--accent); }
+
+    /* ── CARDS ── */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px;
+      margin-bottom: 12px;
+    }
+
+    /* ── DASHBOARD ── */
+    .dash-header {
+      padding: 20px 20px 0;
+      padding-top: calc(20px + env(safe-area-inset-top, 0px));
+    }
+
+    .dash-greeting { font-size: 22px; font-weight: 700; color: var(--text); }
+    .dash-sub      { font-size: 13px; color: var(--text2); margin-top: 2px; margin-bottom: 20px; }
+
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; }
+
+    .stat-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 12px;
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      cursor: pointer; transition: border-color 0.15s;
+    }
+    .stat-card:active { border-color: var(--border2); }
+
+    .stat-icon { width: 36px; height: 36px; border-radius: 9px; display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .stat-n    { font-size: 22px; font-weight: 700; color: var(--text); }
+    .stat-l    { font-size: 10px; color: var(--text3); text-align: center; }
+
+    .section-label { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.8px; text-transform: uppercase; margin-bottom: 10px; }
+
+    .quick-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 24px; }
+
+    .quick-btn {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 14px;
+      display: flex; flex-direction: column; gap: 10px;
+      cursor: pointer; transition: border-color 0.15s, transform 0.15s;
+    }
+    .quick-btn:active { transform: scale(0.97); border-color: var(--border2); }
+    .quick-btn-icon { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .quick-btn-label { font-size: 13px; font-weight: 600; color: var(--text); }
+
+    /* ── RECENT ITEMS ── */
+    .item-row {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .item-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .item-dot  { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .item-title { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; }
+    .item-sub   { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .item-badge { font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; }
+
+    .msg-avatar { width: 36px; height: 36px; border-radius: 50%; background: var(--accentS); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; color: var(--accent); flex-shrink: 0; }
+
+    /* ── PROJECTS ── */
+    .proj-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden; margin-bottom: 14px;
+      transition: border-color 0.15s;
+    }
+
+    .proj-cover {
+      width: 100%; height: 160px;
+      background: var(--card2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 32px; color: var(--text3);
+      overflow: hidden;
+    }
+    .proj-cover img { width: 100%; height: 100%; object-fit: cover; }
+
+    .proj-body { padding: 14px; }
+    .proj-top  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+    .proj-name { font-size: 16px; font-weight: 600; color: var(--text); }
+    .proj-desc { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 10px; }
+
+    .tags-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+    .tag { font-size: 11px; font-weight: 500; color: var(--accent); background: var(--accentS); padding: 3px 8px; border-radius: 6px; }
+
+    .proj-actions { display: flex; gap: 10px; border-top: 1px solid var(--border); padding-top: 12px; }
+    .proj-btn { flex: 1; padding: 9px; border-radius: 8px; border: 1px solid var(--border); background: var(--card2); font-size: 12px; font-weight: 600; color: var(--text2); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; transition: all 0.15s; }
+    .proj-btn:active { background: var(--border); }
+    .proj-btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+    .proj-btn.danger  { color: var(--danger); border-color: var(--danger); }
+
+    /* ── FORM ── */
+    .form-body { padding: 20px; }
+
+    .field { margin-bottom: 18px; }
+    .field label { display: block; font-size: 11px; font-weight: 600; color: var(--text2); letter-spacing: 0.5px; text-transform: uppercase; margin-bottom: 8px; }
+    .field input, .field textarea, .field select {
+      width: 100%; background: var(--card2); border: 1px solid var(--border);
+      border-radius: 10px; padding: 12px 14px;
+      font-family: 'Inter', sans-serif; font-size: 14px; color: var(--text);
+      outline: none; transition: border-color 0.2s;
+      -webkit-appearance: none;
+    }
+    .field input:focus, .field textarea:focus, .field select:focus { border-color: var(--accent); }
+    .field textarea { resize: none; }
+    .field input::placeholder, .field textarea::placeholder { color: var(--text3); }
+
+    .status-pills { display: flex; gap: 8px; }
+    .status-pill { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--card2); font-size: 13px; font-weight: 500; color: var(--text2); cursor: pointer; text-align: center; transition: all 0.15s; }
+    .status-pill.active { border-color: var(--accent); background: var(--accentS); color: var(--accent); }
+
+    .img-picker {
+      width: 100%; height: 160px; border-radius: 12px;
+      border: 2px dashed var(--border);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+      cursor: pointer; transition: border-color 0.2s;
+      overflow: hidden; position: relative; background: var(--card2);
+    }
+    .img-picker:active { border-color: var(--accent); }
+    .img-picker img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+    .img-picker-label { font-size: 13px; color: var(--text2); z-index: 1; }
+    .img-picker-sub   { font-size: 11px; color: var(--text3); z-index: 1; }
+    .img-picker-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 2; }
+
+    .btn-primary {
+      width: 100%; padding: 14px; border-radius: 12px;
+      background: var(--accent); border: none; color: #fff;
+      font-family: 'Inter', sans-serif; font-size: 15px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+    }
+    .btn-primary:active { opacity: 0.8; }
+    .btn-primary:disabled { opacity: 0.4; }
+
+    .btn-ghost {
+      width: 100%; padding: 13px; border-radius: 12px;
+      background: transparent; border: 1px solid var(--border); color: var(--text2);
+      font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 500;
+      cursor: pointer; margin-top: 10px;
+      transition: background 0.15s;
+    }
+    .btn-ghost:active { background: var(--card2); }
+
+    /* ── MESSAGES ── */
+    .msg-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px; margin-bottom: 10px;
+      cursor: pointer; transition: border-color 0.15s;
+      display: flex; gap: 12px; align-items: flex-start;
+    }
+    .msg-card.unread { border-color: rgba(110,87,255,0.4); background: rgba(110,87,255,0.05); }
+    .msg-card:active { border-color: var(--border2); }
+    .msg-info { flex: 1; min-width: 0; }
+    .msg-top  { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
+    .msg-name { font-size: 14px; font-weight: 600; color: var(--text); }
+    .msg-time { font-size: 11px; color: var(--text3); }
+    .msg-subject { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 2px; }
+    .msg-preview { font-size: 12px; color: var(--text2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .unread-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); flex-shrink: 0; margin-top: 4px; }
+
+    /* ── MESSAGE DETAIL ── */
+    .msg-detail-header { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; display: flex; gap: 14px; align-items: center; }
+    .msg-detail-name  { font-size: 16px; font-weight: 600; color: var(--text); }
+    .msg-detail-email { font-size: 13px; color: var(--text2); margin-top: 2px; }
+    .msg-detail-body  { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px; margin-bottom: 12px; font-size: 14px; color: var(--text); line-height: 1.75; }
+    .reply-row { display: flex; gap: 10px; }
+    .reply-btn { flex: 1; padding: 13px; border-radius: 12px; border: none; font-family: 'Inter', sans-serif; font-size: 14px; font-weight: 600; color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+    /* ── SECTIONS ── */
+    .section-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px; margin-bottom: 10px;
+      display: flex; gap: 14px; align-items: center; cursor: pointer;
+      transition: border-color 0.15s;
+    }
+    .section-item:active { border-color: var(--border2); }
+    .section-item-icon { width: 44px; height: 44px; border-radius: 11px; background: var(--accentS); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+    .section-item-name { font-size: 15px; font-weight: 600; color: var(--text); }
+    .section-item-sub  { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+    /* ── SETTINGS ── */
+    .settings-group { margin-bottom: 24px; }
+    .settings-row { background: var(--card); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 8px; }
+    .settings-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; cursor: pointer; transition: background 0.15s; border-bottom: 1px solid var(--border); }
+    .settings-item:last-child { border-bottom: none; }
+    .settings-item:active { background: var(--card2); }
+    .settings-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 16px; flex-shrink: 0; }
+    .settings-label { font-size: 14px; font-weight: 500; color: var(--text); flex: 1; }
+    .settings-sub   { font-size: 12px; color: var(--text2); margin-top: 1px; }
+    .settings-arrow { color: var(--text3); font-size: 16px; }
+
+    /* ── EMPTY STATE ── */
+    .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 20px; gap: 12px; }
+    .empty-icon  { font-size: 48px; opacity: 0.4; }
+    .empty-title { font-size: 16px; font-weight: 600; color: var(--text2); }
+    .empty-sub   { font-size: 13px; color: var(--text3); text-align: center; line-height: 1.6; }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed; bottom: calc(80px + var(--safe)); left: 20px; right: 20px;
+      background: var(--card2); border: 1px solid var(--border2);
+      border-radius: 12px; padding: 14px 16px;
+      font-size: 13px; font-weight: 500; color: var(--text);
+      z-index: 999; text-align: center;
+      transform: translateY(20px); opacity: 0;
+      transition: all 0.3s cubic-bezier(.32,.72,0,1);
+      pointer-events: none;
+    }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    .toast.success { border-color: var(--green); color: var(--green); }
+    .toast.error   { border-color: var(--danger); color: var(--danger); }
+
+    /* ── INSTALL BANNER ── */
+    .install-banner {
+      position: fixed; bottom: calc(70px + var(--safe)); left: 12px; right: 12px;
+      background: var(--card); border: 1px solid var(--accent);
+      border-radius: 14px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      z-index: 60; box-shadow: 0 8px 32px rgba(110,87,255,0.2);
+      transform: translateY(100px); opacity: 0;
+      transition: all 0.4s cubic-bezier(.32,.72,0,1);
+    }
+    .install-banner.show { transform: translateY(0); opacity: 1; }
+    .install-banner-text { flex: 1; font-size: 13px; color: var(--text2); }
+    .install-banner-text strong { display: block; font-size: 14px; color: var(--text); margin-bottom: 2px; }
+    .install-btn { background: var(--accent); color: #fff; border: none; padding: 8px 16px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .install-dismiss { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; padding: 4px; }
+
+    /* ── LOADING SPINNER ── */
+    .spinner { width: 24px; height: 24px; border: 2px solid var(--border2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.6s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .loading-center { display: flex; align-items: center; justify-content: center; padding: 60px; }
+
+    /* ── NOTIFICATION PERMISSION ── */
+    .notif-card {
+      background: linear-gradient(135deg, var(--accentS), transparent);
+      border: 1px solid rgba(110,87,255,0.3);
+      border-radius: 14px; padding: 16px; margin-bottom: 20px;
+      display: flex; gap: 14px; align-items: center;
+    }
+    .notif-text { flex: 1; font-size: 13px; color: var(--text2); line-height: 1.5; }
+    .notif-text strong { display: block; color: var(--text); margin-bottom: 3px; }
+    .notif-btn { background: var(--accent); color: #fff; border: none; padding: 8px 14px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 0; }
+
+    @media (min-width: 480px) {
+      .screen { max-width: 480px; left: 50%; transform: translateX(calc(-50% + 100vw)); }
+      .screen.active { transform: translateX(-50%); }
+      .screen.behind { transform: translateX(calc(-50% - 8%)); }
+      .screen.root   { transform: translateX(-50%); }
+      .tabs  { max-width: 480px; left: 50%; transform: translateX(-50%); }
+      .toast { max-width: 440px; left: 50%; transform: translateX(calc(-50% + 0px)) translateY(20px); right: auto; }
+      .toast.show { transform: translateX(-50%) translateY(0); }
+      .install-banner { max-width: 456px; left: 50%; transform: translateX(calc(-50%)) translateY(100px); right: auto; }
+      .install-banner.show { transform: translateX(-50%) translateY(0); }
+      #lockScreen { max-width: 480px; left: 50%; transform: translateX(-50%); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════
+  LOCK SCREEN
+══════════════════════════════════════════════ -->
+<div id="lockScreen" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0a0a0f,#13131a);z-index:100;">
+  <div class="lock-icon">🔐</div>
+  <div class="lock-title" id="lockTitle">Welcome back, Roy</div>
+  <div class="lock-sub"   id="lockSub">Enter your PIN to continue</div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-error" id="pinError"></div>
+  <div class="keypad">
+    <div class="key" onclick="pressKey('1')">1</div>
+    <div class="key" onclick="pressKey('2')">2</div>
+    <div class="key" onclick="pressKey('3')">3</div>
+    <div class="key" onclick="pressKey('4')">4</div>
+    <div class="key" onclick="pressKey('5')">5</div>
+    <div class="key" onclick="pressKey('6')">6</div>
+    <div class="key" onclick="pressKey('7')">7</div>
+    <div class="key" onclick="pressKey('8')">8</div>
+    <div class="key" onclick="pressKey('9')">9</div>
+    <div class="key empty"></div>
+    <div class="key" onclick="pressKey('0')">0</div>
+    <div class="key del" onclick="pressKey('del')">⌫</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  TAB BAR
+══════════════════════════════════════════════ -->
+<nav class="tabs" id="tabBar" style="display:none;">
+  <div class="tab active" id="tab-dash"     onclick="switchTab('dash')">
+    <div class="tab-icon">⚡</div>
+    <div class="tab-label">Dashboard</div>
+  </div>
+  <div class="tab" id="tab-projects" onclick="switchTab('projects')">
+    <div class="tab-icon">📁</div>
+    <div class="tab-label">Projects</div>
+  </div>
+  <div class="tab" id="tab-sections" onclick="switchTab('sections')">
+    <div class="tab-icon">✏️</div>
+    <div class="tab-label">Sections</div>
+  </div>
+  <div class="tab" id="tab-messages" onclick="switchTab('messages')">
+    <div class="tab-icon">💬</div>
+    <div class="tab-label">Messages</div>
+    <div class="tab-badge" id="msgBadge" style="display:none;">0</div>
+  </div>
+  <div class="tab" id="tab-settings" onclick="switchTab('settings')">
+    <div class="tab-icon">⚙️</div>
+    <div class="tab-label">Settings</div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════
+  DASHBOARD SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen root" id="screen-dash">
+  <div class="screen-body" id="body-dash">
+    <div style="padding:20px;">
+      <div style="padding-top:env(safe-area-inset-top,0px)">
+        <div class="dash-greeting" id="dashGreeting">Good morning, Roy 👋</div>
+        <div class="dash-sub">Portfolio CMS · Personal Dashboard</div>
+      </div>
+
+      <!-- Notification prompt -->
+      <div class="notif-card" id="notifCard" style="display:none;">
+        <div style="font-size:24px;">🔔</div>
+        <div class="notif-text">
+          <strong>Enable notifications</strong>
+          Get alerted when someone fills your contact form.
+        </div>
+        <button class="notif-btn" onclick="requestNotifPermission()">Allow</button>
+      </div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-card" onclick="switchTab('projects')">
+          <div class="stat-icon" style="background:var(--accentS);">📁</div>
+          <div class="stat-n" id="statProjects">—</div>
+          <div class="stat-l">Projects</div>
+        </div>
+        <div class="stat-card" onclick="switchTab('messages')">
+          <div class="stat-icon" style="background:rgba(245,158,11,0.15);">📩</div>
+          <div class="stat-n" id="statMessages">—</div>
+          <div class="stat-l">Messages</div>
+        </div>
+        <div class="stat-card" onclick="switchTab('messages')">
+          <div class="stat-icon" style="background:rgba(239,68,68,0.15);">🔴</div>
+          <div class="stat-n" id="statUnread">—</div>
+          <div class="stat-l">Unread</div>
+        </div>
+      </div>
+
+      <!-- Quick actions -->
+      <div class="section-label">Quick Actions</div>
+      <div class="quick-grid">
+        <div class="quick-btn" onclick="openProjectForm(null)">
+          <div class="quick-btn-icon" style="background:var(--accentS);">➕</div>
+          <div class="quick-btn-label">Add Project</div>
+        </div>
+        <div class="quick-btn" onclick="switchTab('sections')">
+          <div class="quick-btn-icon" style="background:rgba(61,219,164,0.12);">✏️</div>
+          <div class="quick-btn-label">Edit Sections</div>
+        </div>
+        <div class="quick-btn" onclick="switchTab('messages')">
+          <div class="quick-btn-icon" style="background:rgba(245,158,11,0.15);">💬</div>
+          <div class="quick-btn-label">Messages</div>
+        </div>
+        <div class="quick-btn" onclick="switchTab('settings')">
+          <div class="quick-btn-icon" style="background:rgba(239,68,68,0.12);">⚙️</div>
+          <div class="quick-btn-label">Settings</div>
+        </div>
+      </div>
+
+      <!-- Recent projects -->
+      <div class="section-label">Recent Projects</div>
+      <div class="card" id="recentProjects"><div class="loading-center"><div class="spinner"></div></div></div>
+
+      <!-- Recent messages -->
+      <div class="section-label" style="margin-top:8px;">Recent Messages</div>
+      <div class="card" id="recentMessages"><div class="loading-center"><div class="spinner"></div></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  PROJECTS SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-projects">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Projects</div>
+      <div class="topbar-sub" id="projCount">Loading...</div>
+    </div>
+    <div class="icon-btn accent" onclick="openProjectForm(null)">➕</div>
+  </div>
+  <div class="screen-body" id="body-projects" style="padding:16px 16px 0;">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  PROJECT FORM SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-project-form">
+  <div class="topbar">
+    <div class="icon-btn" onclick="closeScreen('project-form')">←</div>
+    <div class="topbar-title" id="formTitle">New Project</div>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="screen-body">
+    <div class="form-body">
+      <input type="hidden" id="editId">
+
+      <!-- Image picker -->
+      <div class="field">
+        <label>Cover Image</label>
+        <div class="img-picker" id="imgPicker" onclick="pickImage()">
+          <div style="font-size:32px;color:var(--text3);">🖼️</div>
+          <div class="img-picker-label">Tap to add cover image</div>
+          <div class="img-picker-sub">From camera or gallery</div>
+        </div>
+        <input type="file" id="imgInput" accept="image/*" style="display:none;" onchange="handleImageSelect(event)">
+      </div>
+
+      <div class="field">
+        <label>Project Title *</label>
+        <input type="text" id="fTitle" placeholder="e.g. Euro Live">
+      </div>
+      <div class="field">
+        <label>Description</label>
+        <textarea id="fDesc" rows="4" placeholder="What does this project do?"></textarea>
+      </div>
+      <div class="field">
+        <label>Live URL</label>
+        <input type="url" id="fLive" placeholder="https://myproject.com">
+      </div>
+      <div class="field">
+        <label>GitHub URL</label>
+        <input type="url" id="fGithub" placeholder="https://github.com/...">
+      </div>
+      <div class="field">
+        <label>Tags (comma separated)</label>
+        <input type="text" id="fTags" placeholder="HTML, CSS, JavaScript">
+      </div>
+      <div class="field">
+        <label>Status</label>
+        <div class="status-pills">
+          <div class="status-pill active" data-status="Live"     onclick="selectStatus(this)">Live</div>
+          <div class="status-pill"        data-status="Draft"    onclick="selectStatus(this)">Draft</div>
+          <div class="status-pill"        data-status="Archived" onclick="selectStatus(this)">Archived</div>
+        </div>
+      </div>
+
+      <button class="btn-primary" id="saveBtn" onclick="saveProject()">
+        <span id="saveBtnText">Save Project</span>
+      </button>
+      <button class="btn-ghost" onclick="closeScreen('project-form')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  SECTIONS SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-sections">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Sections</div>
+      <div class="topbar-sub">Edit your site content</div>
+    </div>
+  </div>
+  <div class="screen-body" id="body-sections" style="padding:16px;">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  SECTION EDITOR SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-section-editor">
+  <div class="topbar">
+    <div class="icon-btn" onclick="closeScreen('section-editor')">←</div>
+    <div class="topbar-title" id="sectionEditorTitle">Edit Section</div>
+    <div style="width:36px;"></div>
+  </div>
+  <div class="screen-body">
+    <div class="form-body">
+      <div style="background:var(--accentS);border:1px solid rgba(110,87,255,0.2);border-radius:10px;padding:12px;margin-bottom:20px;font-size:13px;color:var(--text2);line-height:1.6;">
+        💡 Changes go live on your portfolio site immediately after saving.
+      </div>
+      <div id="sectionFields"></div>
+      <button class="btn-primary" id="sectionSaveBtn" onclick="saveSectionEdit()">Save Changes</button>
+      <button class="btn-ghost" onclick="closeScreen('section-editor')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  MESSAGES SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-messages">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Messages</div>
+      <div class="topbar-sub" id="unreadLabel">Loading...</div>
+    </div>
+  </div>
+  <div class="screen-body" id="body-messages" style="padding:16px;">
+    <div class="loading-center"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  MESSAGE DETAIL SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-msg-detail">
+  <div class="topbar">
+    <div class="icon-btn" onclick="closeScreen('msg-detail')">←</div>
+    <div class="topbar-title">Message</div>
+    <div class="icon-btn" id="deleteMsgBtn" style="color:var(--danger);" onclick="deleteCurrentMsg()">🗑</div>
+  </div>
+  <div class="screen-body">
+    <div style="padding:16px;" id="msgDetailBody"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  SETTINGS SCREEN
+══════════════════════════════════════════════ -->
+<div class="screen" id="screen-settings">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title">Settings</div>
+      <div class="topbar-sub">roy.chidhungwana.dev</div>
+    </div>
+  </div>
+  <div class="screen-body" style="padding:16px;">
+    <div class="settings-group">
+      <div class="section-label">Security</div>
+      <div class="settings-row">
+        <div class="settings-item" onclick="resetPin()">
+          <div class="settings-icon" style="background:rgba(245,158,11,0.15);">🔑</div>
+          <div>
+            <div class="settings-label">Change PIN</div>
+            <div class="settings-sub">Reset your 4-digit PIN</div>
+          </div>
+          <div class="settings-arrow">›</div>
+        </div>
+        <div class="settings-item" onclick="lockApp()">
+          <div class="settings-icon" style="background:var(--accentS);">🔒</div>
+          <div>
+            <div class="settings-label">Lock App</div>
+            <div class="settings-sub">Return to PIN screen</div>
+          </div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="section-label">Notifications</div>
+      <div class="settings-row">
+        <div class="settings-item" onclick="requestNotifPermission()">
+          <div class="settings-icon" style="background:rgba(61,219,164,0.12);">🔔</div>
+          <div>
+            <div class="settings-label">Push Notifications</div>
+            <div class="settings-sub" id="notifStatus">Tap to enable</div>
+          </div>
+          <div class="settings-arrow">›</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="section-label">Firebase</div>
+      <div class="settings-row">
+        <div class="settings-item">
+          <div class="settings-icon" style="background:rgba(249,115,22,0.15);">🔥</div>
+          <div>
+            <div class="settings-label">Project</div>
+            <div class="settings-sub" id="fbProject">roychid-terminal</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-group">
+      <div class="section-label">App</div>
+      <div class="settings-row">
+        <div class="settings-item">
+          <div class="settings-icon" style="background:var(--accentS);">📱</div>
+          <div>
+            <div class="settings-label">Roy CMS</div>
+            <div class="settings-sub">Version 1.0.0 · Personal use</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Install banner -->
+<div class="install-banner" id="installBanner">
+  <div style="font-size:28px;">📲</div>
+  <div class="install-banner-text">
+    <strong>Install Roy CMS</strong>
+    Add to your home screen for the full app experience.
+  </div>
+  <button class="install-btn" onclick="installApp()">Install</button>
+  <button class="install-dismiss" onclick="dismissInstall()">✕</button>
+</div>
+
+<!-- ══════════════════════════════════════════════
+  SCRIPTS
+══════════════════════════════════════════════ -->
+<script type="module">
+import { initializeApp }   from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
+import {
+  getFirestore, collection, doc,
+  getDocs, getDoc, addDoc, updateDoc, deleteDoc,
+  query, orderBy, onSnapshot, serverTimestamp,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
+import {
+  getStorage, ref, uploadBytes, getDownloadURL, deleteObject,
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
+
+// ✏️ PASTE YOUR FIREBASE CONFIG HERE
+ const firebaseConfig = {
+    apiKey: "AIzaSyBRsenqkz6y8X9qv1kkp2lm9Ud3UzdOQ5A",
+    authDomain: "roychid-terminal.firebaseapp.com",
+    projectId: "roychid-terminal",
+    storageBucket: "roychid-terminal.firebasestorage.app",
+    messagingSenderId: "315928325816",
+    appId: "1:315928325816:web:51874a4df9128de9b8ce4d"
+  };
+
+const app     = initializeApp(firebaseConfig);
+const db      = getFirestore(app);
+const storage = getStorage(app);
+
+// ── expose to global scope ────────────────────
+window._db      = db;
+window._storage = storage;
+window._firebase = { collection, doc, getDocs, getDoc, addDoc, updateDoc, deleteDoc, query, orderBy, onSnapshot, serverTimestamp, ref, uploadBytes, getDownloadURL, deleteObject };
+
+// ── Real-time message listener ────────────────
+const q = query(collection(db, 'messages'), orderBy('createdAt', 'desc'));
+window._msgUnsub = onSnapshot(q, snap => {
+  const msgs   = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  const unread = msgs.filter(m => !m.read && !m.placeholder).length;
+  window._messages = msgs.filter(m => !m.placeholder);
+  updateBadge(unread);
+  if (window._currentTab === 'messages') renderMessages();
+  if (window._currentTab === 'dash')     renderDashMessages();
+  // Push notification for new unread
+  if (unread > (window._lastUnread || 0)) {
+    showLocalNotif('New message received', 'Someone filled your contact form.');
+  }
+  window._lastUnread = unread;
+});
+
+window.initData = async function() {
+  await loadStats();
+  await loadProjects();
+  await loadSections();
+};
+
+// ── STATS ─────────────────────────────────────
+async function loadStats() {
+  const { getDocs, collection } = window._firebase;
+  const [ps, ms] = await Promise.all([
+    getDocs(collection(db, 'projects')),
+    getDocs(collection(db, 'messages')),
+  ]);
+  const projects = ps.docs.filter(d => !d.data().placeholder);
+  const messages = ms.docs.filter(d => !d.data().placeholder);
+  const unread   = messages.filter(d => !d.data().read).length;
+
+  document.getElementById('statProjects').textContent = projects.length;
+  document.getElementById('statMessages').textContent = messages.length;
+  document.getElementById('statUnread').textContent   = unread;
+  document.getElementById('projCount').textContent    = `${projects.length} project${projects.length !== 1 ? 's' : ''}`;
+
+  renderDashProjects(projects.slice(0,3).map(d => ({ id: d.id, ...d.data() })));
+}
+
+// ── PROJECTS ──────────────────────────────────
+async function loadProjects() {
+  const { getDocs, collection, query, orderBy } = window._firebase;
+  const q    = query(collection(db, 'projects'), orderBy('order', 'asc'));
+  const snap = await getDocs(q);
+  window._projects = snap.docs
+    .map(d => ({ id: d.id, ...d.data() }))
+    .filter(p => !p.placeholder);
+  if (window._currentTab === 'projects') renderProjects();
+}
+
+window.renderProjects = function() {
+  const body = document.getElementById('body-projects');
+  const ps   = window._projects || [];
+  if (!ps.length) {
+    body.innerHTML = `<div class="empty"><div class="empty-icon">📂</div><div class="empty-title">No projects yet</div><div class="empty-sub">Tap ➕ to add your first project</div></div>`;
+    return;
+  }
+  body.innerHTML = ps.map(p => `
+    <div class="proj-card">
+      <div class="proj-cover">
+        ${p.imageUrl ? `<img src="${p.imageUrl}" alt="${p.title}">` : '🖼️'}
+      </div>
+      <div class="proj-body">
+        <div class="proj-top">
+          <div class="proj-name">${p.title}</div>
+          <span class="item-badge" style="background:${p.status==='Live'?'var(--greenS)':'var(--accentS)'};color:${p.status==='Live'?'var(--green)':'var(--accent)'};">${p.status||'Live'}</span>
+        </div>
+        <div class="proj-desc">${p.description||''}</div>
+        <div class="tags-row">${(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join('')}</div>
+        <div class="proj-actions">
+          <button class="proj-btn" onclick="openProjectForm('${p.id}')">✏️ Edit</button>
+          ${p.liveUrl ? `<button class="proj-btn primary" onclick="window.open('${p.liveUrl}','_blank')">🔗 View</button>` : ''}
+          <button class="proj-btn danger" onclick="confirmDeleteProject('${p.id}','${p.title}')">🗑</button>
+        </div>
+      </div>
+    </div>`).join('');
+};
+
+function renderDashProjects(ps) {
+  const el = document.getElementById('recentProjects');
+  if (!ps.length) { el.innerHTML = `<div style="color:var(--text3);font-size:13px;text-align:center;padding:8px;">No projects yet</div>`; return; }
+  el.innerHTML = ps.map(p => `
+    <div class="item-row">
+      <div class="item-dot" style="background:var(--accent);"></div>
+      <div style="flex:1;"><div class="item-title">${p.title}</div><div class="item-sub">${p.description?.slice(0,50)||''}...</div></div>
+      <span class="item-badge" style="background:var(--greenS);color:var(--green);">${p.status||'Live'}</span>
+    </div>`).join('');
+}
+
+// ── SECTIONS ──────────────────────────────────
+async function loadSections() {
+  const { getDocs, collection } = window._firebase;
+  const snap = await getDocs(collection(db, 'sections'));
+  window._sections = {};
+  snap.docs.forEach(d => { window._sections[d.id] = d.data(); });
+  if (window._currentTab === 'sections') renderSections();
+}
+
+window.renderSections = function() {
+  const body = document.getElementById('body-sections');
+  const secs = window._sections || {};
+  const keys = Object.keys(secs);
+  const icons = { hero:'🏠', about:'👤', skills:'⚡', contact:'📧', footer:'📄' };
+  if (!keys.length) {
+    body.innerHTML = `<div class="empty"><div class="empty-icon">📝</div><div class="empty-title">No sections found</div><div class="empty-sub">Add documents to the sections collection in Firestore</div></div>`;
+    return;
+  }
+  body.innerHTML = keys.map(k => `
+    <div class="section-item" onclick="openSectionEditor('${k}')">
+      <div class="section-item-icon">${icons[k]||'📄'}</div>
+      <div style="flex:1;">
+        <div class="section-item-name">${k.charAt(0).toUpperCase()+k.slice(1)}</div>
+        <div class="section-item-sub">${Object.keys(secs[k]).length} fields</div>
+      </div>
+      <div style="color:var(--text3);font-size:18px;">›</div>
+    </div>`).join('');
+};
+
+window.openSectionEditor = function(key) {
+  const data = window._sections[key] || {};
+  window._editingSection = key;
+  document.getElementById('sectionEditorTitle').textContent =
+    key.charAt(0).toUpperCase() + key.slice(1) + ' Section';
+
+  document.getElementById('sectionFields').innerHTML = Object.keys(data).map(field => `
+    <div class="field">
+      <label>${field.replace(/_/g,' ').toUpperCase()}</label>
+      ${field.includes('para') || String(data[field]).length > 80
+        ? `<textarea id="sf_${field}" rows="4">${data[field]||''}</textarea>`
+        : `<input type="text" id="sf_${field}" value="${(data[field]||'').toString().replace(/"/g,'&quot;')}">`
+      }
+    </div>`).join('');
+
+  pushScreen('section-editor');
+};
+
+window.saveSectionEdit = async function() {
+  const key  = window._editingSection;
+  const data = window._sections[key] || {};
+  const { doc, updateDoc } = window._firebase;
+  const updated = {};
+  Object.keys(data).forEach(field => {
+    const el = document.getElementById(`sf_${field}`);
+    if (el) updated[field] = el.value;
+  });
+  const btn = document.getElementById('sectionSaveBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await updateDoc(doc(db, 'sections', key), { ...updated, updatedAt: serverTimestamp() });
+    window._sections[key] = { ...data, ...updated };
+    showToast('Section saved ✓', 'success');
+    closeScreen('section-editor');
+  } catch(e) {
+    showToast('Save failed', 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Changes';
+  }
+};
+
+// ── MESSAGES ──────────────────────────────────
+function renderDashMessages() {
+  const el   = document.getElementById('recentMessages');
+  const msgs = (window._messages||[]).slice(0,3);
+  if (!msgs.length) { el.innerHTML = `<div style="color:var(--text3);font-size:13px;text-align:center;padding:8px;">No messages yet</div>`; return; }
+  el.innerHTML = msgs.map(m => `
+    <div class="item-row" onclick="openMessage('${m.id}')" style="cursor:pointer;">
+      <div class="msg-avatar">${(m.name||'U')[0].toUpperCase()}</div>
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div class="item-title">${m.name||'Unknown'}</div>
+          ${!m.read ? '<div style="width:7px;height:7px;border-radius:50%;background:var(--accent);flex-shrink:0;"></div>' : ''}
+        </div>
+        <div class="item-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${m.message||''}</div>
+      </div>
+    </div>`).join('');
+}
+
+window.renderMessages = function() {
+  const body = document.getElementById('body-messages');
+  const msgs = window._messages || [];
+  const unread = msgs.filter(m => !m.read).length;
+  document.getElementById('unreadLabel').textContent = unread ? `${unread} unread` : 'All caught up ✓';
+
+  if (!msgs.length) {
+    body.innerHTML = `<div class="empty"><div class="empty-icon">💬</div><div class="empty-title">No messages yet</div><div class="empty-sub">Messages from your contact form will appear here in real time</div></div>`;
+    return;
+  }
+  body.innerHTML = msgs.map(m => `
+    <div class="msg-card ${m.read?'':'unread'}" onclick="openMessage('${m.id}')">
+      <div class="msg-avatar">${(m.name||'U')[0].toUpperCase()}</div>
+      <div class="msg-info">
+        <div class="msg-top">
+          <div class="msg-name">${m.name||'Unknown'}</div>
+          <div class="msg-time">${formatTime(m.createdAt)}</div>
+        </div>
+        ${m.subject ? `<div class="msg-subject">${m.subject}</div>` : ''}
+        <div class="msg-preview">${m.message||''}</div>
+      </div>
+      ${!m.read ? '<div class="unread-dot"></div>' : ''}
+    </div>`).join('');
+};
+
+window.openMessage = async function(id) {
+  const m = (window._messages||[]).find(x => x.id === id);
+  if (!m) return;
+  window._currentMsg = m;
+
+  document.getElementById('msgDetailBody').innerHTML = `
+    <div class="msg-detail-header">
+      <div class="msg-avatar" style="width:44px;height:44px;font-size:16px;">${(m.name||'U')[0].toUpperCase()}</div>
+      <div>
+        <div class="msg-detail-name">${m.name||'Unknown'}</div>
+        <div class="msg-detail-email">${m.email||''}</div>
+      </div>
+      <div style="margin-left:auto;font-size:12px;color:var(--text3);">${formatTime(m.createdAt)}</div>
+    </div>
+    ${m.subject ? `<div style="font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.5px;">Subject</div><div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:16px;">${m.subject}</div>` : ''}
+    <div class="msg-detail-body">${m.message||''}</div>
+    <div class="reply-row">
+      ${m.email ? `<button class="reply-btn" style="background:var(--accent);" onclick="window.location.href='mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject||'Your message')}'" >✉️ Reply via Email</button>` : ''}
+      ${m.phone ? `<button class="reply-btn" style="background:#25D366;" onclick="window.open('https://wa.me/${m.phone.replace(/\D/g,'')}','_blank')">💬 WhatsApp</button>` : ''}
+    </div>`;
+
+  pushScreen('msg-detail');
+
+  if (!m.read) {
+    const { doc, updateDoc } = window._firebase;
+    await updateDoc(doc(db, 'messages', id), { read: true });
+  }
+};
+
+window.deleteCurrentMsg = async function() {
+  const m = window._currentMsg;
+  if (!m) return;
+  if (!confirm(`Delete message from ${m.name}?`)) return;
+  const { doc, deleteDoc } = window._firebase;
+  await deleteDoc(doc(db, 'messages', m.id));
+  closeScreen('msg-detail');
+  showToast('Message deleted', 'success');
+};
+
+// ── PROJECT FORM ──────────────────────────────
+window.openProjectForm = function(id) {
+  const editing = id ? (window._projects||[]).find(p => p.id === id) : null;
+  window._editingProject = editing;
+  document.getElementById('formTitle').textContent  = editing ? 'Edit Project' : 'New Project';
+  document.getElementById('saveBtnText').textContent = editing ? 'Save Changes' : 'Save Project';
+  document.getElementById('editId').value   = editing?.id || '';
+  document.getElementById('fTitle').value   = editing?.title || '';
+  document.getElementById('fDesc').value    = editing?.description || '';
+  document.getElementById('fLive').value    = editing?.liveUrl || '';
+  document.getElementById('fGithub').value  = editing?.githubUrl || '';
+  document.getElementById('fTags').value    = (editing?.tags||[]).join(', ');
+  window._selectedImageUri = null;
+
+  const picker = document.getElementById('imgPicker');
+  picker.innerHTML = editing?.imageUrl
+    ? `<img src="${editing.imageUrl}"><div class="img-picker-overlay"><div style="color:#fff;font-size:13px;font-weight:600;">Change Image</div></div>`
+    : `<div style="font-size:32px;color:var(--text3);">🖼️</div><div class="img-picker-label">Tap to add cover image</div><div class="img-picker-sub">From camera or gallery</div>`;
+
+  document.querySelectorAll('.status-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.status === (editing?.status || 'Live'));
+  });
+
+  pushScreen('project-form');
+};
+
+window.pickImage = function() { document.getElementById('imgInput').click(); };
+
+window.handleImageSelect = function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const url = URL.createObjectURL(file);
+  window._selectedImageFile = file;
+  const picker = document.getElementById('imgPicker');
+  picker.innerHTML = `<img src="${url}"><div class="img-picker-overlay"><div style="color:#fff;font-size:13px;font-weight:600;">Change Image</div></div>`;
+};
+
+window.selectStatus = function(el) {
+  document.querySelectorAll('.status-pill').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+};
+
+window.saveProject = async function() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { showToast('Title is required', 'error'); return; }
+
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true;
+  document.getElementById('saveBtnText').textContent = 'Saving…';
+
+  const { doc, addDoc, updateDoc, collection, ref, uploadBytes, getDownloadURL } = window._firebase;
+  const editing = window._editingProject;
+  const status  = document.querySelector('.status-pill.active')?.dataset.status || 'Live';
+
+  let imageUrl  = editing?.imageUrl  || null;
+  let imagePath = editing?.imagePath || null;
+
+  try {
+    if (window._selectedImageFile) {
+      const path    = `projects/${Date.now()}_${window._selectedImageFile.name}`;
+      const sRef    = ref(storage, path);
+      await uploadBytes(sRef, window._selectedImageFile);
+      imageUrl  = await getDownloadURL(sRef);
+      imagePath = path;
+    }
+
+    const data = {
+      title,
+      description: document.getElementById('fDesc').value.trim(),
+      liveUrl:     document.getElementById('fLive').value.trim(),
+      githubUrl:   document.getElementById('fGithub').value.trim(),
+      tags:        document.getElementById('fTags').value.split(',').map(t => t.trim()).filter(Boolean),
+      status, imageUrl, imagePath,
+    };
+
+    if (editing) {
+      await updateDoc(doc(db, 'projects', editing.id), { ...data, updatedAt: serverTimestamp() });
+    } else {
+      await addDoc(collection(db, 'projects'), { ...data, order: Date.now(), createdAt: serverTimestamp() });
+    }
+
+    await loadProjects();
+    await loadStats();
+    window._selectedImageFile = null;
+    showToast(editing ? 'Project updated ✓' : 'Project added ✓', 'success');
+    closeScreen('project-form');
+  } catch(e) {
+    showToast('Save failed. Check Firebase config.', 'error');
+    console.error(e);
+  } finally {
+    btn.disabled = false;
+    document.getElementById('saveBtnText').textContent = editing ? 'Save Changes' : 'Save Project';
+  }
+};
+
+window.confirmDeleteProject = function(id, title) {
+  if (!confirm(`Delete "${title}"? This cannot be undone.`)) return;
+  deleteProject(id);
+};
+
+async function deleteProject(id) {
+  const { doc, deleteDoc } = window._firebase;
+  const p = (window._projects||[]).find(x => x.id === id);
+  if (p?.imagePath) {
+    try {
+      const { ref, deleteObject } = window._firebase;
+      await deleteObject(ref(storage, p.imagePath));
+    } catch {}
+  }
+  await deleteDoc(doc(db, 'projects', id));
+  await loadProjects();
+  await loadStats();
+  showToast('Project deleted', 'success');
+}
+
+// ── HELPERS ───────────────────────────────────
+function formatTime(ts) {
+  if (!ts) return '';
+  const d   = ts.toDate ? ts.toDate() : new Date(ts);
+  const now = new Date();
+  const diff = now - d;
+  if (diff < 60000)    return 'Just now';
+  if (diff < 3600000)  return `${Math.floor(diff/60000)}m ago`;
+  if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`;
+  return d.toLocaleDateString();
+}
+
+function updateBadge(count) {
+  const badge = document.getElementById('msgBadge');
+  if (count > 0) { badge.textContent = count; badge.style.display = 'flex'; }
+  else           { badge.style.display = 'none'; }
+}
+
+// Init after unlock
+window.initData();
+
+</script>
+
+<script>
+// ── PIN / LOCK ────────────────────────────────
+let pinBuffer = '';
+let pinMode   = 'enter'; // 'set' | 'confirm' | 'enter'
+let pinConfirm = '';
+
+function getStoredPin() { return localStorage.getItem('roy_cms_pin'); }
+function savePin(p)     { localStorage.setItem('roy_cms_pin', p); }
+function clearPin()     { localStorage.removeItem('roy_cms_pin'); }
+
+function initLock() {
+  const stored = getStoredPin();
+  if (!stored) {
+    pinMode = 'set';
+    document.getElementById('lockTitle').textContent = 'Create a PIN';
+    document.getElementById('lockSub').textContent   = 'Set a 4-digit PIN to protect your CMS';
+  }
+}
+
+window.pressKey = function(key) {
+  if (key === 'del') {
+    pinBuffer = pinBuffer.slice(0, -1);
+    updateDots();
+    return;
+  }
+  if (pinBuffer.length >= 4) return;
+  pinBuffer += key;
+  updateDots();
+  if (pinBuffer.length === 4) setTimeout(handleFullPin, 120);
+};
+
+function updateDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById(`d${i}`).classList.toggle('filled', i < pinBuffer.length);
+  }
+}
+
+function handleFullPin() {
+  if (pinMode === 'set') {
+    pinConfirm = pinBuffer;
+    pinBuffer  = '';
+    updateDots();
+    pinMode = 'confirm';
+    document.getElementById('lockTitle').textContent = 'Confirm PIN';
+    document.getElementById('lockSub').textContent   = 'Enter your PIN again to confirm';
+    document.getElementById('pinError').textContent  = '';
+
+  } else if (pinMode === 'confirm') {
+    if (pinBuffer === pinConfirm) {
+      savePin(pinBuffer);
+      unlock();
+    } else {
+      pinBuffer = ''; updateDots();
+      pinMode = 'set'; pinConfirm = '';
+      document.getElementById('lockTitle').textContent = 'Create a PIN';
+      document.getElementById('lockSub').textContent   = 'PINs didn\'t match. Try again.';
+      shakeDots();
+    }
+
+  } else {
+    if (pinBuffer === getStoredPin()) {
+      unlock();
+    } else {
+      pinBuffer = ''; updateDots();
+      document.getElementById('pinError').textContent = 'Incorrect PIN';
+      shakeDots();
+    }
+  }
+}
+
+function shakeDots() {
+  const el = document.getElementById('pinDots');
+  el.classList.add('shake');
+  el.addEventListener('animationend', () => el.classList.remove('shake'), { once: true });
+}
+
+function unlock() {
+  document.getElementById('lockScreen').classList.add('hidden');
+  document.getElementById('tabBar').style.display = 'flex';
+  window._currentTab = 'dash';
+  setGreeting();
+  checkNotifPermission();
+  if (window.initData) window.initData();
+}
+
+window.lockApp = function() {
+  document.getElementById('lockScreen').classList.remove('hidden');
+  document.getElementById('tabBar').style.display = 'none';
+  pinBuffer = ''; pinMode = 'enter'; updateDots();
+  document.getElementById('pinError').textContent = '';
+};
+
+window.resetPin = function() {
+  if (!confirm('Reset your PIN? You will need to set a new one.')) return;
+  clearPin();
+  lockApp();
+  pinMode = 'set';
+  document.getElementById('lockTitle').textContent = 'Create a PIN';
+  document.getElementById('lockSub').textContent   = 'Set a new 4-digit PIN';
+};
+
+// ── NAVIGATION ────────────────────────────────
+window._currentTab = 'dash';
+window._screenStack = [];
+
+window.switchTab = function(tab) {
+  window._screenStack = [];
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active','behind','root');
+  });
+  document.getElementById(`screen-${tab}`).classList.add('root');
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${tab}`)?.classList.add('active');
+  window._currentTab = tab;
+
+  if (tab === 'projects' && window._projects) window.renderProjects();
+  if (tab === 'sections' && window._sections) window.renderSections();
+  if (tab === 'messages' && window._messages) window.renderMessages();
+};
+
+window.pushScreen = function(name) {
+  const current = window._screenStack.length
+    ? document.getElementById(`screen-${window._screenStack[window._screenStack.length-1]}`)
+    : document.getElementById(`screen-${window._currentTab}`);
+  if (current) { current.classList.remove('root','active'); current.classList.add('behind'); }
+  window._screenStack.push(name);
+  document.getElementById(`screen-${name}`).classList.add('active');
+};
+
+window.closeScreen = function(name) {
+  document.getElementById(`screen-${name}`).classList.remove('active');
+  window._screenStack.pop();
+  const prev = window._screenStack.length
+    ? window._screenStack[window._screenStack.length-1]
+    : window._currentTab;
+  const prevEl = document.getElementById(`screen-${prev}`);
+  prevEl.classList.remove('behind');
+  prevEl.classList.add(window._screenStack.length ? 'active' : 'root');
+};
+
+// ── GREETING ─────────────────────────────────
+function setGreeting() {
+  const h = new Date().getHours();
+  const g = h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('dashGreeting').textContent = `${g}, Roy 👋`;
+}
+
+// ── TOAST ─────────────────────────────────────
+window.showToast = function(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className   = `toast show ${type}`;
+  clearTimeout(window._toastTimer);
+  window._toastTimer = setTimeout(() => { t.className = 'toast'; }, 3000);
+};
+
+// ── NOTIFICATIONS ─────────────────────────────
+function checkNotifPermission() {
+  const card = document.getElementById('notifCard');
+  const status = document.getElementById('notifStatus');
+  if (!('Notification' in window)) { status.textContent = 'Not supported'; return; }
+  if (Notification.permission === 'granted') {
+    card.style.display = 'none';
+    status.textContent = 'Enabled ✓';
+  } else if (Notification.permission === 'denied') {
+    card.style.display = 'none';
+    status.textContent = 'Blocked in browser settings';
+  } else {
+    card.style.display = 'flex';
+    status.textContent = 'Tap to enable';
+  }
+}
+
+window.requestNotifPermission = async function() {
+  if (!('Notification' in window)) { showToast('Notifications not supported', 'error'); return; }
+  const perm = await Notification.requestPermission();
+  checkNotifPermission();
+  if (perm === 'granted') showToast('Notifications enabled ✓', 'success');
+  else showToast('Notifications blocked', 'error');
+};
+
+window.showLocalNotif = function(title, body) {
+  if (Notification.permission !== 'granted') return;
+  if (document.visibilityState === 'visible') return; // only when app is backgrounded
+  new Notification(title, { body, icon: 'icons/icon-192.png', badge: 'icons/icon-72.png' });
+};
+
+// ── INSTALL PROMPT ────────────────────────────
+let _deferredInstall = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _deferredInstall = e;
+  if (!localStorage.getItem('install_dismissed')) {
+    setTimeout(() => {
+      document.getElementById('installBanner').classList.add('show');
+    }, 3000);
+  }
+});
+
+window.installApp = async function() {
+  if (!_deferredInstall) return;
+  _deferredInstall.prompt();
+  const { outcome } = await _deferredInstall.userChoice;
+  if (outcome === 'accepted') showToast('App installed! ✓', 'success');
+  document.getElementById('installBanner').classList.remove('show');
+  _deferredInstall = null;
+};
+
+window.dismissInstall = function() {
+  document.getElementById('installBanner').classList.remove('show');
+  localStorage.setItem('install_dismissed', '1');
+};
+
+// ── SERVICE WORKER ────────────────────────────
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('service-worker.js')
+    .then(() => console.log('SW registered'))
+    .catch(e => console.log('SW error:', e));
+}
+
+// ── INIT ─────────────────────────────────────
+initLock();
+</script>
+
+</body>
+</html>
