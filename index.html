@@ -444,7 +444,7 @@
 <!-- ══════════════════════════════════════════════
   LOCK SCREEN
 ══════════════════════════════════════════════ -->
-<div id="lockScreen" style="position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0a0a0f,#13131a);z-index:100;">
+<div id="lockScreen" style="display:none;position:fixed;inset:0;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(160deg,#0a0a0f,#13131a);z-index:100;">
   <div class="lock-icon">🔐</div>
   <div class="lock-title" id="lockTitle">Welcome back, Roy</div>
   <div class="lock-sub"   id="lockSub">Enter your PIN to continue</div>
@@ -474,7 +474,7 @@
 <!-- ══════════════════════════════════════════════
   TAB BAR
 ══════════════════════════════════════════════ -->
-<nav class="tabs" id="tabBar" style="display:none;">
+<nav class="tabs" id="tabBar" style="display:flex;">
   <div class="tab active" id="tab-dash"     onclick="switchTab('dash')">
     <div class="tab-icon">⚡</div>
     <div class="tab-label">Dashboard</div>
@@ -850,12 +850,6 @@ window._msgUnsub = onSnapshot(q, snap => {
   window._lastUnread = unread;
 });
 
-window.initData = async function() {
-  await loadStats();
-  await loadProjects();
-  await loadSections();
-};
-
 // ── STATS ─────────────────────────────────────
 async function loadStats() {
   const { getDocs, collection } = window._firebase;
@@ -1210,8 +1204,16 @@ function updateBadge(count) {
   else           { badge.style.display = 'none'; }
 }
 
-// Init after unlock
-window.initData();
+// Init after unlock — exposed globally so the PIN script can call it
+window.initData = async function() {
+  await loadStats();
+  await loadProjects();
+  await loadSections();
+};
+
+// Mark module as ready and dispatch event for PIN unlock
+window._cmsReady = true;
+window.dispatchEvent(new Event('cms-ready'));
 
 </script>
 
@@ -1297,7 +1299,12 @@ function unlock() {
   window._currentTab = 'dash';
   setGreeting();
   checkNotifPermission();
-  if (window.initData) window.initData();
+  // module scripts may not have run yet — use event or direct call
+  if (typeof window._cmsReady !== 'undefined') {
+    window.initData();
+  } else {
+    window.addEventListener('cms-ready', () => window.initData(), { once: true });
+  }
 }
 
 window.lockApp = function() {
