@@ -13,312 +13,214 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- Firebase -->
+  <!-- Firebase compat (v10) -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 
-  <!-- React + Babel -->
+  <!-- React 18 + Babel -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
 
-  <!-- Lucide Icons -->
+  <!-- Lucide icons UMD -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
 
   <style>
     :root {
-      --bg:     #09090b;
-      --bg1:    #111113;
-      --bg2:    #18181b;
-      --bg3:    #27272a;
-      --border: #3f3f46;
-      --border2:#52525b;
-      --text:   #fafafa;
-      --text2:  #a1a1aa;
-      --text3:  #71717a;
-      --accent: #7c3aed;
-      --accentL:#8b5cf6;
-      --accentS:rgba(124,58,237,0.15);
-      --green:  #10b981;
-      --greenS: rgba(16,185,129,0.12);
-      --amber:  #f59e0b;
-      --red:    #ef4444;
-      --safe:   env(safe-area-inset-bottom,0px);
-      --top:    env(safe-area-inset-top,0px);
+      --bg:#09090b; --bg1:#111113; --bg2:#18181b; --bg3:#27272a;
+      --border:#3f3f46; --border2:#52525b;
+      --text:#fafafa; --text2:#a1a1aa; --text3:#71717a;
+      --accent:#7c3aed; --accentL:#8b5cf6; --accentS:rgba(124,58,237,0.15);
+      --green:#10b981; --greenS:rgba(16,185,129,0.12);
+      --amber:#f59e0b; --red:#ef4444;
+      --safe:env(safe-area-inset-bottom,0px);
+      --top:env(safe-area-inset-top,0px);
     }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body,#root{height:100%;width:100%;background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:15px;line-height:1.5;overflow:hidden;-webkit-font-smoothing:antialiased}
 
-    * { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+    .app{position:relative;width:100%;height:100%;display:flex;flex-direction:column;overflow:hidden}
 
-    html,body,#root {
-      height:100%; width:100%;
-      background:var(--bg);
-      color:var(--text);
-      font-family:'Inter',sans-serif;
-      font-size:15px;
-      line-height:1.5;
-      overflow:hidden;
-      -webkit-font-smoothing:antialiased;
-    }
+    /* LOCK */
+    .lock{position:fixed;inset:0;z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(ellipse at 50% 0%,rgba(124,58,237,.15) 0%,var(--bg) 70%)}
+    .lock-logo{width:76px;height:76px;border-radius:22px;background:var(--accentS);border:1px solid rgba(124,58,237,.35);display:flex;align-items:center;justify-content:center;margin-bottom:28px;box-shadow:0 0 40px rgba(124,58,237,.2)}
+    .lock-title{font-size:24px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-.5px}
+    .lock-sub{font-size:13px;color:var(--text2);margin-bottom:44px}
+    .pdots{display:flex;gap:14px;margin-bottom:12px}
+    .pdot{width:13px;height:13px;border-radius:50%;border:2px solid var(--border);background:transparent;transition:all .15s}
+    .pdot.on{background:var(--accent);border-color:var(--accent);transform:scale(1.1)}
+    .perr{font-size:12px;color:var(--red);height:18px;margin-bottom:20px}
+    .kpad{display:grid;grid-template-columns:repeat(3,70px);gap:10px}
+    .kkey{width:70px;height:70px;border-radius:50%;background:var(--bg2);border:1px solid var(--border);color:var(--text);font-family:'Inter',sans-serif;font-size:22px;font-weight:500;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;user-select:none}
+    .kkey:active{background:var(--bg3);transform:scale(.92)}
+    .kkey.ghost{background:transparent;border-color:transparent;pointer-events:none}
+    @keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-8px)}40%{transform:translateX(8px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+    .shaking{animation:shake .35s ease}
 
-    /* ── APP SHELL ── */
-    .app { position:relative; width:100%; height:100%; display:flex; flex-direction:column; overflow:hidden; }
+    /* SCREEN STACK */
+    .screens{flex:1;position:relative;overflow:hidden}
+    .screen{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--bg);will-change:transform;transition:transform .32s cubic-bezier(.32,.72,0,1),opacity .32s}
+    .screen.behind{transform:translateX(-6%);opacity:.7;pointer-events:none}
+    .screen.front{transform:translateX(0);opacity:1}
+    .screen.offright{transform:translateX(100%)}
 
-    /* ── LOCK ── */
-    .lock {
-      position:fixed; inset:0; z-index:300;
-      display:flex; flex-direction:column; align-items:center; justify-content:center;
-      background:radial-gradient(ellipse at 50% 0%, rgba(124,58,237,0.15) 0%, var(--bg) 70%);
-    }
-    .lock-logo {
-      width:76px; height:76px; border-radius:22px;
-      background:var(--accentS); border:1px solid rgba(124,58,237,0.35);
-      display:flex; align-items:center; justify-content:center; margin-bottom:28px;
-      box-shadow:0 0 40px rgba(124,58,237,0.2);
-    }
-    .lock-title { font-size:24px; font-weight:800; color:var(--text); margin-bottom:6px; letter-spacing:-0.5px; }
-    .lock-sub   { font-size:13px; color:var(--text2); margin-bottom:44px; }
-    .pdots { display:flex; gap:14px; margin-bottom:12px; }
-    .pdot  { width:13px; height:13px; border-radius:50%; border:2px solid var(--border); background:transparent; transition:all 0.15s; }
-    .pdot.on { background:var(--accent); border-color:var(--accent); transform:scale(1.1); }
-    .perr  { font-size:12px; color:var(--red); height:18px; margin-bottom:20px; }
-    .kpad  { display:grid; grid-template-columns:repeat(3,70px); gap:10px; }
-    .kkey  {
-      width:70px; height:70px; border-radius:50%;
-      background:var(--bg2); border:1px solid var(--border);
-      color:var(--text); font-family:'Inter',sans-serif; font-size:22px; font-weight:500;
-      cursor:pointer; display:flex; align-items:center; justify-content:center;
-      transition:all 0.12s; user-select:none;
-    }
-    .kkey:active { background:var(--bg3); transform:scale(0.92); }
-    .kkey.ghost  { background:transparent; border-color:transparent; pointer-events:none; }
-    @keyframes shake {
-      0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)}
-    }
-    .shaking { animation:shake 0.35s ease; }
+    /* TAB BAR */
+    .tabbar{display:flex;background:rgba(17,17,19,.95);border-top:1px solid var(--border);padding-bottom:var(--safe);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0}
+    .tabitem{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:10px 0;cursor:pointer;position:relative;transition:opacity .15s}
+    .tabitem-label{font-size:10px;font-weight:500;color:var(--text3);letter-spacing:.2px;transition:color .15s}
+    .tabitem.active .tabitem-label{color:var(--accentL)}
+    .tabitem svg{color:var(--text3);transition:color .15s}
+    .tabitem.active svg{color:var(--accentL)}
+    .tab-pip{position:absolute;top:8px;right:calc(50% - 14px);min-width:16px;height:16px;border-radius:8px;background:var(--red);font-size:10px;font-weight:700;color:#fff;display:flex;align-items:center;justify-content:center;padding:0 4px}
 
-    /* ── SCREENS ── */
-    .screens { flex:1; position:relative; overflow:hidden; }
-    .screen  {
-      position:absolute; inset:0;
-      display:flex; flex-direction:column;
-      background:var(--bg);
-      will-change:transform;
-      transition:transform 0.32s cubic-bezier(0.32,0.72,0,1), opacity 0.32s;
-    }
-    .screen.slide-right  { transform:translateX(100%); }
-    .screen.slide-left   { transform:translateX(-6%); opacity:0.7; }
-    .screen.slide-center { transform:translateX(0); opacity:1; }
+    /* TOPBAR */
+    .topbar{display:flex;align-items:center;justify-content:space-between;padding:12px 18px;padding-top:calc(12px + var(--top));background:rgba(17,17,19,.95);border-bottom:1px solid var(--border);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-shrink:0;min-height:56px}
+    .topbar-title{font-size:18px;font-weight:700;color:var(--text);letter-spacing:-.3px}
+    .topbar-sub{font-size:11px;color:var(--text3);margin-top:1px}
+    .ibtn{width:36px;height:36px;border-radius:10px;background:var(--bg2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:background .15s;flex-shrink:0;color:var(--text2)}
+    .ibtn:active{background:var(--bg3)}
+    .ibtn.accent{background:var(--accent);border-color:var(--accent);color:#fff}
 
-    /* ── TAB BAR ── */
-    .tabbar {
-      display:flex; background:rgba(17,17,19,0.92);
-      border-top:1px solid var(--border);
-      padding-bottom:var(--safe);
-      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-      flex-shrink:0;
-    }
-    .tabitem {
-      flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center;
-      gap:3px; padding:10px 0; cursor:pointer; position:relative;
-      transition:opacity 0.15s;
-    }
-    .tabitem-label { font-size:10px; font-weight:500; color:var(--text3); letter-spacing:0.2px; }
-    .tabitem.active .tabitem-label { color:var(--accentL); }
-    .tabitem svg   { color:var(--text3); transition:color 0.15s; }
-    .tabitem.active svg { color:var(--accentL); }
-    .tab-pip {
-      position:absolute; top:8px; right:calc(50% - 14px);
-      min-width:16px; height:16px; border-radius:8px;
-      background:var(--red); font-size:10px; font-weight:700; color:#fff;
-      display:flex; align-items:center; justify-content:center; padding:0 4px;
-    }
+    /* SCROLL BODY */
+    .sbody{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+    .pad{padding:16px} .pad2{padding:20px}
 
-    /* ── TOPBAR ── */
-    .topbar {
-      display:flex; align-items:center; justify-content:space-between;
-      padding:12px 18px; padding-top:calc(12px + var(--top));
-      background:rgba(17,17,19,0.92); border-bottom:1px solid var(--border);
-      backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px);
-      flex-shrink:0; min-height:56px;
-    }
-    .topbar-title { font-size:18px; font-weight:700; color:var(--text); letter-spacing:-0.3px; }
-    .topbar-sub   { font-size:11px; color:var(--text3); margin-top:1px; }
-    .ibtn {
-      width:36px; height:36px; border-radius:10px;
-      background:var(--bg2); border:1px solid var(--border);
-      display:flex; align-items:center; justify-content:center;
-      cursor:pointer; transition:background 0.15s; flex-shrink:0; color:var(--text2);
-    }
-    .ibtn:active { background:var(--bg3); }
-    .ibtn.accent { background:var(--accent); border-color:var(--accent); color:#fff; }
+    /* CARDS */
+    .card{background:var(--bg1);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:12px}
+    .card2{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px}
 
-    /* ── SCROLL BODY ── */
-    .sbody {
-      flex:1; overflow-y:auto; overflow-x:hidden;
-      -webkit-overflow-scrolling:touch;
-      scroll-behavior:smooth;
-    }
-    .pad  { padding:16px; }
-    .pad2 { padding:20px; }
+    /* LABELS */
+    .slabel{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.8px;text-transform:uppercase;margin-bottom:10px;margin-top:4px}
 
-    /* ── CARDS ── */
-    .card  { background:var(--bg1); border:1px solid var(--border); border-radius:16px; padding:16px; margin-bottom:12px; }
-    .card2 { background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:14px; margin-bottom:10px; }
+    /* DASHBOARD */
+    .greeting{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.5px;line-height:1.2}
+    .greeting-sub{font-size:13px;color:var(--text3);margin-top:4px;margin-bottom:24px}
+    .stats-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px}
+    .stat-box{background:var(--bg1);border:1px solid var(--border);border-radius:14px;padding:14px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:border-color .15s,transform .15s}
+    .stat-box:active{transform:scale(.96);border-color:var(--accent)}
+    .stat-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+    .stat-n{font-size:22px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+    .stat-l{font-size:10px;color:var(--text3);text-align:center;font-weight:500}
+    .quick-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px}
+    .qbtn{background:var(--bg1);border:1px solid var(--border);border-radius:14px;padding:16px 14px;display:flex;flex-direction:column;gap:10px;cursor:pointer;transition:border-color .15s,transform .15s}
+    .qbtn:active{transform:scale(.97);border-color:var(--accent)}
+    .qbtn-ico{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center}
+    .qbtn-label{font-size:13px;font-weight:600;color:var(--text)}
+    .rrow{display:flex;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--border);cursor:pointer}
+    .rrow:last-child{border-bottom:none;padding-bottom:0}
+    .rrow-title{font-size:14px;font-weight:500;color:var(--text);flex:1}
+    .rrow-sub{font-size:12px;color:var(--text3);margin-top:1px}
+    .avatar{width:36px;height:36px;border-radius:50%;background:var(--accentS);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:var(--accentL);flex-shrink:0}
 
-    /* ── SECTION LABEL ── */
-    .slabel { font-size:11px; font-weight:600; color:var(--text3); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:10px; margin-top:4px; }
+    /* BADGE */
+    .badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px}
 
-    /* ── DASHBOARD ── */
-    .greeting { font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px; line-height:1.2; }
-    .greeting-sub { font-size:13px; color:var(--text3); margin-top:4px; margin-bottom:24px; }
+    /* PROJECTS */
+    .pcard{background:var(--bg1);border:1px solid var(--border);border-radius:16px;overflow:hidden;margin-bottom:14px}
+    .pcover{width:100%;height:160px;background:var(--bg2);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+    .pcover img{width:100%;height:100%;object-fit:cover}
+    .pcover-ph{display:flex;flex-direction:column;align-items:center;gap:6px;color:var(--text3)}
+    .pbody{padding:14px}
+    .ptop{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px}
+    .pname{font-size:16px;font-weight:700;color:var(--text);letter-spacing:-.2px;flex:1;margin-right:8px}
+    .pdesc{font-size:13px;color:var(--text2);line-height:1.6;margin-bottom:10px}
+    .tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+    .tag{font-size:11px;font-weight:500;color:var(--accentL);background:var(--accentS);padding:3px 9px;border-radius:20px}
+    .pacts{display:flex;gap:8px;border-top:1px solid var(--border);padding-top:12px}
+    .pabtn{flex:1;padding:9px;border-radius:9px;border:1px solid var(--border);background:var(--bg2);font-size:12px;font-weight:600;color:var(--text2);cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;font-family:'Inter',sans-serif;transition:all .15s}
+    .pabtn:active{background:var(--bg3)}
+    .pabtn.p{background:var(--accent);border-color:var(--accent);color:#fff}
+    .pabtn.d{color:var(--red);border-color:rgba(239,68,68,.3)}
 
-    .stats-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:24px; }
-    .stat-box {
-      background:var(--bg1); border:1px solid var(--border); border-radius:14px;
-      padding:14px 10px; display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer;
-      transition:border-color 0.15s, transform 0.15s;
-    }
-    .stat-box:active { transform:scale(0.96); border-color:var(--accent); }
-    .stat-ico { width:34px; height:34px; border-radius:9px; display:flex; align-items:center; justify-content:center; }
-    .stat-n   { font-size:22px; font-weight:800; color:var(--text); letter-spacing:-0.5px; }
-    .stat-l   { font-size:10px; color:var(--text3); text-align:center; font-weight:500; }
+    /* FORM */
+    .field{margin-bottom:18px}
+    .field-label{display:block;font-size:11px;font-weight:600;color:var(--text3);letter-spacing:.5px;text-transform:uppercase;margin-bottom:8px}
+    .finput,.ftarea{width:100%;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;font-family:'Inter',sans-serif;font-size:14px;color:var(--text);outline:none;-webkit-appearance:none;transition:border-color .2s}
+    .finput:focus,.ftarea:focus{border-color:var(--accent)}
+    .ftarea{resize:none}
+    .finput::placeholder,.ftarea::placeholder{color:var(--text3)}
+    .spills{display:flex;gap:8px}
+    .spill{flex:1;padding:10px;border-radius:9px;border:1px solid var(--border);background:var(--bg2);font-size:13px;font-weight:500;color:var(--text2);cursor:pointer;text-align:center;font-family:'Inter',sans-serif;transition:all .15s}
+    .spill.on{border-color:var(--accent);background:var(--accentS);color:var(--accentL)}
+    .imgpick{width:100%;height:160px;border-radius:12px;border:2px dashed var(--border);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;cursor:pointer;overflow:hidden;position:relative;background:var(--bg2);transition:border-color .2s}
+    .imgpick:active{border-color:var(--accent)}
+    .imgpick img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+    .imgpick-ov{position:absolute;inset:0;background:rgba(0,0,0,.5);display:flex;align-items:center;justify-content:center;z-index:2}
+    .btn-a{width:100%;padding:14px;border-radius:12px;background:var(--accent);border:none;color:#fff;font-family:'Inter',sans-serif;font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;letter-spacing:-.2px;transition:opacity .2s}
+    .btn-a:active{opacity:.82}
+    .btn-a:disabled{opacity:.4;cursor:not-allowed}
+    .btn-g{width:100%;padding:13px;border-radius:12px;background:transparent;border:1px solid var(--border);color:var(--text2);font-family:'Inter',sans-serif;font-size:14px;font-weight:500;cursor:pointer;margin-top:10px;transition:background .15s}
+    .btn-g:active{background:var(--bg2)}
 
-    .quick-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:24px; }
-    .qbtn {
-      background:var(--bg1); border:1px solid var(--border); border-radius:14px;
-      padding:16px 14px; display:flex; flex-direction:column; gap:10px; cursor:pointer;
-      transition:border-color 0.15s, transform 0.15s;
-    }
-    .qbtn:active { transform:scale(0.97); border-color:var(--accent); }
-    .qbtn-ico   { width:38px; height:38px; border-radius:10px; display:flex; align-items:center; justify-content:center; }
-    .qbtn-label { font-size:13px; font-weight:600; color:var(--text); }
+    /* MESSAGES */
+    .mcard{background:var(--bg1);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;cursor:pointer;display:flex;gap:12px;align-items:flex-start;transition:border-color .15s}
+    .mcard.unread{border-color:rgba(124,58,237,.5);background:rgba(124,58,237,.04)}
+    .mcard:active{border-color:var(--border2)}
+    .minfo{flex:1;min-width:0}
+    .mtop{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+    .mname{font-size:14px;font-weight:600;color:var(--text)}
+    .mtime{font-size:11px;color:var(--text3)}
+    .msubj{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px}
+    .mprev{font-size:12px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .udot{width:8px;height:8px;border-radius:50%;background:var(--accentL);flex-shrink:0;margin-top:4px}
 
-    .rrow { display:flex; align-items:center; gap:12px; padding:11px 0; border-bottom:1px solid var(--border); cursor:pointer; }
-    .rrow:last-child { border-bottom:none; padding-bottom:0; }
-    .rrow-title { font-size:14px; font-weight:500; color:var(--text); flex:1; }
-    .rrow-sub   { font-size:12px; color:var(--text3); margin-top:1px; }
-    .avatar { width:36px; height:36px; border-radius:50%; background:var(--accentS); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--accentL); flex-shrink:0; }
+    /* SECTIONS */
+    .secitem{background:var(--bg1);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:10px;display:flex;gap:14px;align-items:center;cursor:pointer;transition:border-color .15s}
+    .secitem:active{border-color:var(--accent)}
+    .secico{width:44px;height:44px;border-radius:11px;background:var(--accentS);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--accentL)}
 
-    /* ── BADGE ── */
-    .badge { font-size:10px; font-weight:700; padding:3px 8px; border-radius:20px; }
+    /* ANALYTICS */
+    .analytics-hero{background:linear-gradient(135deg,var(--accentS),rgba(124,58,237,.05));border:1px solid rgba(124,58,237,.2);border-radius:16px;padding:20px;margin-bottom:16px}
+    .a-big{font-size:48px;font-weight:800;color:var(--text);letter-spacing:-2px;line-height:1}
+    .a-sub{font-size:13px;color:var(--text2);margin-top:4px}
+    .a-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px}
+    .a-box{background:var(--bg1);border:1px solid var(--border);border-radius:14px;padding:16px}
+    .a-box-n{font-size:24px;font-weight:800;color:var(--text);letter-spacing:-.5px}
+    .a-box-l{font-size:11px;color:var(--text3);margin-top:2px;font-weight:500}
+    .bar-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)}
+    .bar-row:last-child{border-bottom:none}
+    .bar-label{font-size:13px;color:var(--text2);width:80px;flex-shrink:0}
+    .bar-track{flex:1;height:6px;background:var(--bg3);border-radius:3px;overflow:hidden}
+    .bar-fill{height:100%;background:var(--accent);border-radius:3px;transition:width .8s cubic-bezier(.16,1,.3,1)}
+    .bar-count{font-size:12px;color:var(--text3);width:28px;text-align:right;flex-shrink:0}
 
-    /* ── PROJECTS ── */
-    .pcard { background:var(--bg1); border:1px solid var(--border); border-radius:16px; overflow:hidden; margin-bottom:14px; }
-    .pcover { width:100%; height:160px; background:var(--bg2); display:flex; align-items:center; justify-content:center; overflow:hidden; position:relative; }
-    .pcover img { width:100%; height:100%; object-fit:cover; }
-    .pcover-placeholder { display:flex; flex-direction:column; align-items:center; gap:6px; color:var(--text3); }
-    .pbody { padding:14px; }
-    .ptop  { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
-    .pname { font-size:16px; font-weight:700; color:var(--text); letter-spacing:-0.2px; flex:1; margin-right:8px; }
-    .pdesc { font-size:13px; color:var(--text2); line-height:1.6; margin-bottom:10px; }
-    .tags  { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
-    .tag   { font-size:11px; font-weight:500; color:var(--accentL); background:var(--accentS); padding:3px 9px; border-radius:20px; }
-    .pacts { display:flex; gap:8px; border-top:1px solid var(--border); padding-top:12px; }
-    .pabtn { flex:1; padding:9px; border-radius:9px; border:1px solid var(--border); background:var(--bg2); font-size:12px; font-weight:600; color:var(--text2); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:5px; font-family:'Inter',sans-serif; transition:all 0.15s; }
-    .pabtn:active { background:var(--bg3); }
-    .pabtn.p { background:var(--accent); border-color:var(--accent); color:#fff; }
-    .pabtn.d { color:var(--red); border-color:rgba(239,68,68,0.3); }
+    /* SETTINGS */
+    .sgroup{margin-bottom:24px}
+    .srows{background:var(--bg1);border:1px solid var(--border);border-radius:14px;overflow:hidden}
+    .srow{display:flex;align-items:center;gap:14px;padding:14px 16px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s}
+    .srow:last-child{border-bottom:none}
+    .srow:active{background:var(--bg2)}
+    .srow-ico{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+    .srow-label{font-size:14px;font-weight:500;color:var(--text);flex:1}
+    .srow-sub{font-size:12px;color:var(--text3);margin-top:1px}
 
-    /* ── FORM ── */
-    .field { margin-bottom:18px; }
-    .field-label { display:block; font-size:11px; font-weight:600; color:var(--text3); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px; }
-    .finput, .ftarea {
-      width:100%; background:var(--bg2); border:1px solid var(--border);
-      border-radius:10px; padding:12px 14px;
-      font-family:'Inter',sans-serif; font-size:14px; color:var(--text);
-      outline:none; -webkit-appearance:none; transition:border-color 0.2s;
-    }
-    .finput:focus, .ftarea:focus { border-color:var(--accent); }
-    .ftarea { resize:none; }
-    .finput::placeholder, .ftarea::placeholder { color:var(--text3); }
-    .spills { display:flex; gap:8px; }
-    .spill  { flex:1; padding:10px; border-radius:9px; border:1px solid var(--border); background:var(--bg2); font-size:13px; font-weight:500; color:var(--text2); cursor:pointer; text-align:center; font-family:'Inter',sans-serif; transition:all 0.15s; }
-    .spill.on { border-color:var(--accent); background:var(--accentS); color:var(--accentL); }
-    .imgpick { width:100%; height:160px; border-radius:12px; border:2px dashed var(--border); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; cursor:pointer; overflow:hidden; position:relative; background:var(--bg2); transition:border-color 0.2s; }
-    .imgpick:active { border-color:var(--accent); }
-    .imgpick img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; }
-    .imgpick-ov { position:absolute; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:2; }
-    .btn-a { width:100%; padding:14px; border-radius:12px; background:var(--accent); border:none; color:#fff; font-family:'Inter',sans-serif; font-size:15px; font-weight:700; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; letter-spacing:-0.2px; transition:opacity 0.2s; }
-    .btn-a:active { opacity:0.82; }
-    .btn-a:disabled { opacity:0.4; }
-    .btn-g { width:100%; padding:13px; border-radius:12px; background:transparent; border:1px solid var(--border); color:var(--text2); font-family:'Inter',sans-serif; font-size:14px; font-weight:500; cursor:pointer; margin-top:10px; transition:background 0.15s; }
-    .btn-g:active { background:var(--bg2); }
+    /* EMPTY */
+    .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;gap:12px}
+    .empty-ico{color:var(--text3);margin-bottom:4px}
+    .empty-title{font-size:16px;font-weight:600;color:var(--text2)}
+    .empty-sub{font-size:13px;color:var(--text3);text-align:center;line-height:1.6}
 
-    /* ── MESSAGES ── */
-    .mcard { background:var(--bg1); border:1px solid var(--border); border-radius:14px; padding:14px; margin-bottom:10px; cursor:pointer; display:flex; gap:12px; align-items:flex-start; transition:border-color 0.15s; }
-    .mcard.unread { border-color:rgba(124,58,237,0.5); background:rgba(124,58,237,0.04); }
-    .mcard:active { border-color:var(--border2); }
-    .minfo { flex:1; min-width:0; }
-    .mtop  { display:flex; justify-content:space-between; align-items:center; margin-bottom:3px; }
-    .mname { font-size:14px; font-weight:600; color:var(--text); }
-    .mtime { font-size:11px; color:var(--text3); }
-    .msubj { font-size:13px; font-weight:500; color:var(--text); margin-bottom:2px; }
-    .mprev { font-size:12px; color:var(--text2); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .udot  { width:8px; height:8px; border-radius:50%; background:var(--accentL); flex-shrink:0; margin-top:4px; }
+    /* TOAST */
+    .toast-wrap{position:fixed;bottom:calc(72px + var(--safe));left:50%;transform:translateX(-50%) translateY(16px);z-index:999;pointer-events:none;width:calc(100% - 32px);max-width:360px;transition:all .3s cubic-bezier(.32,.72,0,1);opacity:0}
+    .toast-wrap.visible{transform:translateX(-50%) translateY(0);opacity:1}
+    .toast-inner{background:var(--bg3);border:1px solid var(--border2);border-radius:12px;padding:13px 16px;font-size:13px;font-weight:500;text-align:center}
+    .toast-inner.s{border-color:var(--green);color:var(--green)}
+    .toast-inner.e{border-color:var(--red);color:var(--red)}
 
-    /* ── SECTIONS ── */
-    .secitem { background:var(--bg1); border:1px solid var(--border); border-radius:14px; padding:16px; margin-bottom:10px; display:flex; gap:14px; align-items:center; cursor:pointer; transition:border-color 0.15s; }
-    .secitem:active { border-color:var(--accent); }
-    .secico  { width:44px; height:44px; border-radius:11px; background:var(--accentS); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--accentL); }
+    /* SPINNER */
+    .spin{width:22px;height:22px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spinning .6s linear infinite}
+    @keyframes spinning{to{transform:rotate(360deg)}}
+    .spin-center{display:flex;align-items:center;justify-content:center;padding:60px}
 
-    /* ── ANALYTICS ── */
-    .analytics-hero { background:linear-gradient(135deg, var(--accentS), rgba(124,58,237,0.05)); border:1px solid rgba(124,58,237,0.2); border-radius:16px; padding:20px; margin-bottom:16px; }
-    .a-big  { font-size:48px; font-weight:800; color:var(--text); letter-spacing:-2px; line-height:1; }
-    .a-sub  { font-size:13px; color:var(--text2); margin-top:4px; }
-    .a-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:16px; }
-    .a-box  { background:var(--bg1); border:1px solid var(--border); border-radius:14px; padding:16px; }
-    .a-box-n { font-size:24px; font-weight:800; color:var(--text); letter-spacing:-0.5px; }
-    .a-box-l { font-size:11px; color:var(--text3); margin-top:2px; font-weight:500; }
-    .bar-row { display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border); }
-    .bar-row:last-child { border-bottom:none; }
-    .bar-label { font-size:13px; color:var(--text2); width:80px; flex-shrink:0; }
-    .bar-track { flex:1; height:6px; background:var(--bg3); border-radius:3px; overflow:hidden; }
-    .bar-fill  { height:100%; background:var(--accent); border-radius:3px; transition:width 0.8s cubic-bezier(0.16,1,0.3,1); }
-    .bar-count { font-size:12px; color:var(--text3); width:28px; text-align:right; flex-shrink:0; }
-    .country-flag { font-size:18px; }
+    /* HINT */
+    .hint{background:var(--accentS);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:12px;margin-bottom:20px;font-size:13px;color:var(--text2);line-height:1.6}
 
-    /* ── SETTINGS ── */
-    .sgroup { margin-bottom:24px; }
-    .srows  { background:var(--bg1); border:1px solid var(--border); border-radius:14px; overflow:hidden; }
-    .srow   { display:flex; align-items:center; gap:14px; padding:14px 16px; cursor:pointer; border-bottom:1px solid var(--border); transition:background 0.15s; }
-    .srow:last-child { border-bottom:none; }
-    .srow:active { background:var(--bg2); }
-    .srow-ico   { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-    .srow-label { font-size:14px; font-weight:500; color:var(--text); flex:1; }
-    .srow-sub   { font-size:12px; color:var(--text3); margin-top:1px; }
-
-    /* ── EMPTY ── */
-    .empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:12px; }
-    .empty-ico   { color:var(--text3); margin-bottom:4px; }
-    .empty-title { font-size:16px; font-weight:600; color:var(--text2); }
-    .empty-sub   { font-size:13px; color:var(--text3); text-align:center; line-height:1.6; }
-
-    /* ── TOAST ── */
-    .toast-wrap {
-      position:fixed; bottom:calc(72px + var(--safe)); left:50%; transform:translateX(-50%) translateY(16px);
-      z-index:500; pointer-events:none; width:calc(100% - 32px); max-width:360px;
-      transition:all 0.3s cubic-bezier(0.32,0.72,0,1);
-      opacity:0;
-    }
-    .toast-wrap.visible { transform:translateX(-50%) translateY(0); opacity:1; }
-    .toast-inner { background:var(--bg3); border:1px solid var(--border2); border-radius:12px; padding:13px 16px; font-size:13px; font-weight:500; text-align:center; }
-    .toast-inner.s { border-color:var(--green); color:var(--green); }
-    .toast-inner.e { border-color:var(--red); color:var(--red); }
-
-    /* ── SPINNER ── */
-    .spin { width:22px; height:22px; border:2px solid var(--border); border-top-color:var(--accent); border-radius:50%; animation:spinning 0.6s linear infinite; }
-    @keyframes spinning { to { transform:rotate(360deg); } }
-    .spin-center { display:flex; align-items:center; justify-content:center; padding:60px; }
-
-    /* ── INFO HINT ── */
-    .hint { background:var(--accentS); border:1px solid rgba(124,58,237,0.2); border-radius:10px; padding:12px; margin-bottom:20px; font-size:13px; color:var(--text2); line-height:1.6; }
-
-    ::-webkit-scrollbar { width:0; }
+    ::-webkit-scrollbar{width:0}
 
     @media(min-width:480px){
-      .app { max-width:480px; margin:0 auto; box-shadow:0 0 0 1px var(--border); }
-      body { background:#000; }
+      .app{max-width:480px;margin:0 auto;box-shadow:0 0 0 1px var(--border)}
+      body{background:#000}
     }
   </style>
 </head>
@@ -328,9 +230,7 @@
 <script type="text/babel">
 const { useState, useEffect, useRef, useCallback } = React;
 
-// ══════════════════════════════════════
-// FIREBASE
-// ══════════════════════════════════════
+// ── Firebase ──────────────────────────────────────────────
 firebase.initializeApp({
   apiKey:            "AIzaSyBRsenqkz6y8X9qv1kkp2lm9Ud3UzdOQ5A",
   authDomain:        "roychid-terminal.firebaseapp.com",
@@ -343,51 +243,55 @@ const db      = firebase.firestore();
 const storage = firebase.storage();
 const ts      = () => firebase.firestore.FieldValue.serverTimestamp();
 
-// ══════════════════════════════════════
-// LUCIDE ICON WRAPPER
-// ══════════════════════════════════════
-function Icon({ name, size=20, color, className='' }) {
+// ── Icon component — renders after mount using Lucide UMD ─
+function Icon({ name, size = 20, color, style }) {
   const ref = useRef(null);
   useEffect(() => {
-    if (ref.current && window.lucide) {
-      ref.current.innerHTML = '';
-      const icons = window.lucide;
-      const key   = name.replace(/-./g, x => x[1].toUpperCase());
-      if (icons[key]) {
-        const el = document.createElement('div');
-        el.innerHTML = icons[key].toSvg({ width: size, height: size, color: color || 'currentColor', 'stroke-width': 1.8 });
-        ref.current.appendChild(el.firstChild);
-      }
-    }
+    if (!ref.current || !window.lucide) return;
+    const key = name.replace(/-([a-z])/g, (_, c) => c.toUpperCase());
+    const iconFn = window.lucide[key.charAt(0).toUpperCase() + key.slice(1)];
+    if (!iconFn) return;
+    ref.current.innerHTML = '';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.setAttribute('width', size);
+    svg.setAttribute('height', size);
+    svg.setAttribute('viewBox', '0 0 24 24');
+    svg.setAttribute('fill', 'none');
+    svg.setAttribute('stroke', color || 'currentColor');
+    svg.setAttribute('stroke-width', '1.8');
+    svg.setAttribute('stroke-linecap', 'round');
+    svg.setAttribute('stroke-linejoin', 'round');
+    // Use lucide's toSvg approach
+    const tmp = document.createElement('div');
+    tmp.innerHTML = iconFn.toSvg({ width: size, height: size, color: color || 'currentColor', 'stroke-width': 1.8 });
+    if (tmp.firstChild) ref.current.appendChild(tmp.firstChild);
   }, [name, size, color]);
-  return <span ref={ref} className={className} style={{ display:'flex', alignItems:'center', justifyContent:'center' }} />;
+  return (
+    <span ref={ref} style={{ display:'inline-flex', alignItems:'center', justifyContent:'center', flexShrink:0, ...style }} />
+  );
 }
 
-// ══════════════════════════════════════
-// TOAST
-// ══════════════════════════════════════
-let _toastFn = null;
+// ── Toast ─────────────────────────────────────────────────
+let _toast = null;
 function Toast() {
-  const [state, setState] = useState({ msg:'', type:'', visible:false });
-  const timer = useRef(null);
+  const [s, setS] = useState({ msg:'', type:'', v:false });
+  const t = useRef(null);
   useEffect(() => {
-    _toastFn = (msg, type='') => {
-      clearTimeout(timer.current);
-      setState({ msg, type, visible:true });
-      timer.current = setTimeout(() => setState(s => ({...s, visible:false})), 3000);
+    _toast = (msg, type='') => {
+      clearTimeout(t.current);
+      setS({ msg, type, v:true });
+      t.current = setTimeout(() => setS(p => ({...p, v:false})), 3000);
     };
   }, []);
   return (
-    <div className={`toast-wrap ${state.visible?'visible':''}`}>
-      <div className={`toast-inner ${state.type==='success'?'s':state.type==='error'?'e':''}`}>{state.msg}</div>
+    <div className={`toast-wrap ${s.v ? 'visible' : ''}`}>
+      <div className={`toast-inner ${s.type==='success'?'s':s.type==='error'?'e':''}`}>{s.msg}</div>
     </div>
   );
 }
-const toast = (msg, type) => _toastFn && _toastFn(msg, type);
+const toast = (msg, type) => _toast && _toast(msg, type);
 
-// ══════════════════════════════════════
-// HELPERS
-// ══════════════════════════════════════
+// ── Helpers ───────────────────────────────────────────────
 function fmtTime(ts) {
   if (!ts) return '';
   const d = ts.toDate ? ts.toDate() : new Date(ts);
@@ -398,98 +302,65 @@ function fmtTime(ts) {
   return d.toLocaleDateString();
 }
 
-// ══════════════════════════════════════
-// SLIDE NAV HOOK
-// ══════════════════════════════════════
-function useNav(initial='dash') {
-  const [tab, setTab]           = useState(initial);
-  const [stack, setStack]       = useState([]);   // pushed screens
-  const [direction, setDir]     = useState('none');
+// ── Navigation hook ───────────────────────────────────────
+function useNav(initial = 'dash') {
+  const [tab,   setTab]   = useState(initial);
+  const [stack, setStack] = useState([]);
 
-  const switchTab = useCallback(name => {
-    setDir('none');
-    setStack([]);
-    setTab(name);
-  }, []);
-
-  const push = useCallback(name => {
-    setDir('forward');
-    setStack(s => [...s, name]);
-  }, []);
-
-  const pop = useCallback(() => {
-    setDir('back');
-    setStack(s => s.slice(0,-1));
-  }, []);
+  const switchTab = useCallback(name => { setTab(name); setStack([]); }, []);
+  const push      = useCallback(name => setStack(s => [...s, name]), []);
+  const pop       = useCallback(() => setStack(s => s.slice(0,-1)), []);
 
   const current = stack.length ? stack[stack.length-1] : tab;
-  return { tab, stack, current, direction, switchTab, push, pop };
+  return { tab, stack, current, switchTab, push, pop };
 }
 
-// ══════════════════════════════════════
-// PIN SCREEN
-// ══════════════════════════════════════
+// ── PIN screen ────────────────────────────────────────────
 function PinScreen({ onUnlock }) {
-  const [buf, setBuf]       = useState('');
-  const [mode, setMode]     = useState(() => localStorage.getItem('rpin') ? 'enter' : 'set');
-  const [conf, setConf]     = useState('');
-  const [err, setErr]       = useState('');
-  const [shaking, setShake] = useState(false);
+  const [buf,  setBuf]  = useState('');
+  const [mode, setMode] = useState(() => localStorage.getItem('rpin') ? 'enter' : 'set');
+  const [conf, setConf] = useState('');
+  const [err,  setErr]  = useState('');
+  const [shk,  setShk]  = useState(false);
 
-  function shake() {
-    setShake(true);
-    setTimeout(() => setShake(false), 400);
-  }
+  function shake() { setShk(true); setTimeout(()=>setShk(false),400); }
 
   function press(k) {
-    if (k === 'del') { setBuf(b => b.slice(0,-1)); return; }
-    if (buf.length >= 4) return;
-    const next = buf + k;
+    if (k==='del') { setBuf(b=>b.slice(0,-1)); return; }
+    if (buf.length>=4) return;
+    const next = buf+k;
     setBuf(next);
-    if (next.length === 4) setTimeout(() => handle(next), 120);
+    if (next.length===4) setTimeout(()=>handle(next),120);
   }
 
   function handle(pin) {
-    if (mode === 'set') {
-      setConf(pin); setBuf('');
-      setMode('confirm');
-      setErr('');
-    } else if (mode === 'confirm') {
-      if (pin === conf) {
-        localStorage.setItem('rpin', pin);
-        onUnlock();
-      } else {
-        setBuf(''); setConf(''); setMode('set');
-        setErr("PINs didn't match");
-        shake();
-      }
+    if (mode==='set') {
+      setConf(pin); setBuf(''); setMode('confirm'); setErr('');
+    } else if (mode==='confirm') {
+      if (pin===conf) { localStorage.setItem('rpin',pin); onUnlock(); }
+      else { setBuf(''); setConf(''); setMode('set'); setErr("PINs didn't match"); shake(); }
     } else {
-      if (pin === localStorage.getItem('rpin')) {
-        onUnlock();
-      } else {
-        setBuf(''); setErr('Incorrect PIN'); shake();
-      }
+      if (pin===localStorage.getItem('rpin')) { onUnlock(); }
+      else { setBuf(''); setErr('Incorrect PIN'); shake(); }
     }
   }
 
   const titles = { set:'Create a PIN', confirm:'Confirm PIN', enter:'Welcome back, Roy' };
-  const subs   = { set:'Set a 4-digit PIN to protect your CMS', confirm:'Enter your PIN again to confirm', enter:'Enter your PIN to continue' };
+  const subs   = { set:'Set a 4-digit PIN to protect your CMS', confirm:'Enter your PIN again', enter:'Enter your PIN to continue' };
 
   return (
     <div className="lock">
-      <div className="lock-logo">
-        <Icon name="layout-dashboard" size={32} color="#8b5cf6" />
-      </div>
+      <div className="lock-logo"><Icon name="layout-dashboard" size={32} color="#8b5cf6"/></div>
       <div className="lock-title">{titles[mode]}</div>
       <div className="lock-sub">{subs[mode]}</div>
-      <div className={`pdots ${shaking?'shaking':''}`}>
-        {[0,1,2,3].map(i => <div key={i} className={`pdot ${i<buf.length?'on':''}`} />)}
+      <div className={`pdots ${shk?'shaking':''}`}>
+        {[0,1,2,3].map(i=><div key={i} className={`pdot ${i<buf.length?'on':''}`}/>)}
       </div>
       <div className="perr">{err}</div>
       <div className="kpad">
-        {['1','2','3','4','5','6','7','8','9','','0','del'].map((k,i) => (
-          <div key={i} className={`kkey ${k===''?'ghost':''}`} onClick={() => k && press(k)}>
-            {k==='del' ? <Icon name="delete" size={20} /> : k}
+        {['1','2','3','4','5','6','7','8','9','','0','del'].map((k,i)=>(
+          <div key={i} className={`kkey ${k===''?'ghost':''}`} onClick={()=>k&&press(k)}>
+            {k==='del' ? <Icon name="delete" size={20}/> : k}
           </div>
         ))}
       </div>
@@ -497,33 +368,30 @@ function PinScreen({ onUnlock }) {
   );
 }
 
-// ══════════════════════════════════════
-// DASHBOARD
-// ══════════════════════════════════════
+// ── Dashboard ─────────────────────────────────────────────
 function Dashboard({ nav, stats, messages }) {
   const h = new Date().getHours();
   const greeting = h<12?'Good morning':h<17?'Good afternoon':'Good evening';
   const recent = messages.slice(0,3);
-
   return (
-    <div className="screen slide-center" style={{zIndex:5}}>
+    <div className="screen front" style={{zIndex:5}}>
       <div className="sbody">
-        <div className="pad2" style={{paddingTop:`calc(20px + env(safe-area-inset-top,0px))`}}>
+        <div className="pad2" style={{paddingTop:'calc(20px + env(safe-area-inset-top,0px))'}}>
           <div className="greeting">{greeting},<br/>Roy 👋</div>
           <div className="greeting-sub">Portfolio CMS · Personal Dashboard</div>
 
           <div className="stats-grid">
-            <div className="stat-box" onClick={() => nav.switchTab('projects')}>
+            <div className="stat-box" onClick={()=>nav.switchTab('projects')}>
               <div className="stat-ico" style={{background:'var(--accentS)'}}><Icon name="folder" size={18} color="var(--accentL)"/></div>
               <div className="stat-n">{stats.projects}</div>
               <div className="stat-l">Projects</div>
             </div>
-            <div className="stat-box" onClick={() => nav.switchTab('messages')}>
+            <div className="stat-box" onClick={()=>nav.switchTab('messages')}>
               <div className="stat-ico" style={{background:'rgba(245,158,11,0.12)'}}><Icon name="mail" size={18} color="var(--amber)"/></div>
               <div className="stat-n">{stats.messages}</div>
               <div className="stat-l">Messages</div>
             </div>
-            <div className="stat-box" onClick={() => nav.switchTab('analytics')}>
+            <div className="stat-box" onClick={()=>nav.switchTab('analytics')}>
               <div className="stat-ico" style={{background:'rgba(16,185,129,0.12)'}}><Icon name="bar-chart-2" size={18} color="var(--green)"/></div>
               <div className="stat-n">{stats.visits}</div>
               <div className="stat-l">Visits</div>
@@ -532,19 +400,19 @@ function Dashboard({ nav, stats, messages }) {
 
           <div className="slabel">Quick Actions</div>
           <div className="quick-grid">
-            <div className="qbtn" onClick={() => nav.push('project-form')}>
+            <div className="qbtn" onClick={()=>nav.push('project-form')}>
               <div className="qbtn-ico" style={{background:'var(--accentS)'}}><Icon name="plus" size={20} color="var(--accentL)"/></div>
               <div className="qbtn-label">Add Project</div>
             </div>
-            <div className="qbtn" onClick={() => nav.switchTab('sections')}>
+            <div className="qbtn" onClick={()=>nav.switchTab('sections')}>
               <div className="qbtn-ico" style={{background:'rgba(16,185,129,0.12)'}}><Icon name="pencil" size={20} color="var(--green)"/></div>
               <div className="qbtn-label">Edit Sections</div>
             </div>
-            <div className="qbtn" onClick={() => nav.switchTab('analytics')}>
+            <div className="qbtn" onClick={()=>nav.switchTab('analytics')}>
               <div className="qbtn-ico" style={{background:'rgba(245,158,11,0.12)'}}><Icon name="trending-up" size={20} color="var(--amber)"/></div>
               <div className="qbtn-label">Analytics</div>
             </div>
-            <div className="qbtn" onClick={() => nav.switchTab('settings')}>
+            <div className="qbtn" onClick={()=>nav.switchTab('settings')}>
               <div className="qbtn-ico" style={{background:'rgba(239,68,68,0.12)'}}><Icon name="settings" size={20} color="var(--red)"/></div>
               <div className="qbtn-label">Settings</div>
             </div>
@@ -552,10 +420,10 @@ function Dashboard({ nav, stats, messages }) {
 
           <div className="slabel">Recent Messages</div>
           <div className="card">
-            {recent.length === 0
+            {recent.length===0
               ? <div style={{color:'var(--text3)',fontSize:13,textAlign:'center',padding:'8px 0'}}>No messages yet</div>
-              : recent.map(m => (
-                <div key={m.id} className="rrow" onClick={() => nav.push('msg-detail:'+m.id)}>
+              : recent.map(m=>(
+                <div key={m.id} className="rrow" onClick={()=>nav.push('msg-detail:'+m.id)}>
                   <div className="avatar">{(m.name||'U')[0].toUpperCase()}</div>
                   <div style={{flex:1,minWidth:0}}>
                     <div className="rrow-title">{m.name||'Unknown'}</div>
@@ -572,41 +440,40 @@ function Dashboard({ nav, stats, messages }) {
   );
 }
 
-// ══════════════════════════════════════
-// PROJECTS LIST
-// ══════════════════════════════════════
+// ── Projects List ─────────────────────────────────────────
 function Projects({ nav, projects, reload }) {
   async function del(id, title) {
     if (!confirm(`Delete "${title}"?`)) return;
-    const p = projects.find(x => x.id===id);
-    if (p?.imagePath) {
-      try { await storage.ref(p.imagePath).delete(); } catch {}
-    }
+    const p = projects.find(x=>x.id===id);
+    if (p?.imagePath) { try { await storage.ref(p.imagePath).delete(); } catch{} }
     await db.collection('projects').doc(id).delete();
     reload();
     toast('Project deleted','success');
   }
-
   return (
-    <div className="screen slide-center" style={{zIndex:5}}>
+    <div className="screen front" style={{zIndex:5}}>
       <div className="topbar">
         <div>
           <div className="topbar-title">Projects</div>
           <div className="topbar-sub">{projects.length} project{projects.length!==1?'s':''}</div>
         </div>
-        <div className="ibtn accent" onClick={() => nav.push('project-form')}>
+        <div className="ibtn accent" onClick={()=>nav.push('project-form')}>
           <Icon name="plus" size={20} color="#fff"/>
         </div>
       </div>
       <div className="sbody pad">
         {projects.length===0
-          ? <div className="empty"><div className="empty-ico"><Icon name="folder-open" size={48}/></div><div className="empty-title">No projects yet</div><div className="empty-sub">Tap + to add your first project</div></div>
-          : projects.map(p => (
+          ? <div className="empty">
+              <div className="empty-ico"><Icon name="folder-open" size={48}/></div>
+              <div className="empty-title">No projects yet</div>
+              <div className="empty-sub">Tap + to add your first project</div>
+            </div>
+          : projects.map(p=>(
             <div key={p.id} className="pcard">
               <div className="pcover">
                 {p.imageUrl
                   ? <img src={p.imageUrl} alt={p.title}/>
-                  : <div className="pcover-placeholder"><Icon name="image" size={32}/><span style={{fontSize:12,color:'var(--text3)'}}>No image</span></div>
+                  : <div className="pcover-ph"><Icon name="image" size={32}/><span style={{fontSize:12,color:'var(--text3)'}}>No image</span></div>
                 }
               </div>
               <div className="pbody">
@@ -617,13 +484,13 @@ function Projects({ nav, projects, reload }) {
                 <div className="pdesc">{p.description||''}</div>
                 <div className="tags">{(p.tags||[]).map((t,i)=><span key={i} className="tag">{t}</span>)}</div>
                 <div className="pacts">
-                  <button className="pabtn" onClick={() => nav.push('project-form:'+p.id)}>
+                  <button className="pabtn" onClick={()=>nav.push('project-form:'+p.id)}>
                     <Icon name="pencil" size={13}/> Edit
                   </button>
-                  {p.liveUrl && <button className="pabtn p" onClick={() => window.open(p.liveUrl,'_blank')}>
+                  {p.liveUrl && <button className="pabtn p" onClick={()=>window.open(p.liveUrl,'_blank')}>
                     <Icon name="external-link" size={13}/> View
                   </button>}
-                  <button className="pabtn d" onClick={() => del(p.id, p.title)}>
+                  <button className="pabtn d" onClick={()=>del(p.id,p.title)}>
                     <Icon name="trash-2" size={13}/>
                   </button>
                 </div>
@@ -636,20 +503,18 @@ function Projects({ nav, projects, reload }) {
   );
 }
 
-// ══════════════════════════════════════
-// PROJECT FORM
-// ══════════════════════════════════════
+// ── Project Form ──────────────────────────────────────────
 function ProjectForm({ nav, projects, reload, editId }) {
   const editing = editId ? projects.find(p=>p.id===editId) : null;
-  const [title,  setTitle]  = useState(editing?.title||'');
-  const [desc,   setDesc]   = useState(editing?.description||'');
-  const [live,   setLive]   = useState(editing?.liveUrl||'');
-  const [github, setGithub] = useState(editing?.githubUrl||'');
-  const [tags,   setTags]   = useState((editing?.tags||[]).join(', '));
-  const [status, setStatus] = useState(editing?.status||'Live');
-  const [imgFile, setImgFile]= useState(null);
-  const [imgPrev, setImgPrev]= useState(editing?.imageUrl||null);
-  const [saving, setSaving] = useState(false);
+  const [title,   setTitle]   = useState(editing?.title||'');
+  const [desc,    setDesc]    = useState(editing?.description||'');
+  const [live,    setLive]    = useState(editing?.liveUrl||'');
+  const [github,  setGithub]  = useState(editing?.githubUrl||'');
+  const [tags,    setTags]    = useState((editing?.tags||[]).join(', '));
+  const [status,  setStatus]  = useState(editing?.status||'Live');
+  const [imgFile, setImgFile] = useState(null);
+  const [imgPrev, setImgPrev] = useState(editing?.imageUrl||null);
+  const [saving,  setSaving]  = useState(false);
 
   async function save() {
     if (!title.trim()) { toast('Title is required','error'); return; }
@@ -678,22 +543,22 @@ function ProjectForm({ nav, projects, reload, editId }) {
       await reload();
       toast(editing?'Project updated ✓':'Project added ✓','success');
       nav.pop();
-    } catch(e) { toast('Save failed','error'); console.error(e); }
+    } catch(e) { toast('Save failed: '+e.message,'error'); console.error(e); }
     finally { setSaving(false); }
   }
 
   return (
-    <div className="screen slide-right" style={{zIndex:20}}>
+    <div className="screen offright" style={{zIndex:20}}>
       <div className="topbar">
-        <div className="ibtn" onClick={() => nav.pop()}><Icon name="arrow-left" size={20}/></div>
+        <div className="ibtn" onClick={()=>nav.pop()}><Icon name="arrow-left" size={20}/></div>
         <div className="topbar-title">{editing?'Edit Project':'New Project'}</div>
         <div style={{width:36}}/>
       </div>
       <div className="sbody pad2">
         <div className="field">
           <label className="field-label">Cover Image</label>
-          <div className="imgpick" onClick={() => document.getElementById('imgInput').click()}>
-            {imgPrev && <img src={imgPrev}/>}
+          <div className="imgpick" onClick={()=>document.getElementById('imgInput').click()}>
+            {imgPrev && <img src={imgPrev} alt="preview"/>}
             {imgPrev
               ? <div className="imgpick-ov"><span style={{color:'#fff',fontSize:13,fontWeight:600}}>Change Image</span></div>
               : <><Icon name="image" size={28} color="var(--text3)"/><span style={{fontSize:13,color:'var(--text2)'}}>Tap to add cover image</span></>
@@ -708,7 +573,7 @@ function ProjectForm({ nav, projects, reload, editId }) {
         <div className="field"><label className="field-label">Description</label><textarea className="ftarea" rows={4} value={desc} onChange={e=>setDesc(e.target.value)} placeholder="What does this project do?"/></div>
         <div className="field"><label className="field-label">Live URL</label><input className="finput" value={live} onChange={e=>setLive(e.target.value)} placeholder="https://myproject.com"/></div>
         <div className="field"><label className="field-label">GitHub URL</label><input className="finput" value={github} onChange={e=>setGithub(e.target.value)} placeholder="https://github.com/..."/></div>
-        <div className="field"><label className="field-label">Tags (comma separated)</label><input className="finput" value={tags} onChange={e=>setTags(e.target.value)} placeholder="HTML, CSS, JavaScript"/></div>
+        <div className="field"><label className="field-label">Tags (comma separated)</label><input className="finput" value={tags} onChange={e=>setTags(e.target.value)} placeholder="React, Firebase, CSS"/></div>
         <div className="field">
           <label className="field-label">Status</label>
           <div className="spills">
@@ -716,30 +581,32 @@ function ProjectForm({ nav, projects, reload, editId }) {
           </div>
         </div>
         <button className="btn-a" onClick={save} disabled={saving}>
-          {saving ? <div className="spin"/> : (editing?'Save Changes':'Save Project')}
+          {saving ? <><div className="spin"/>&nbsp;Saving…</> : (editing?'Save Changes':'Save Project')}
         </button>
-        <button className="btn-g" onClick={() => nav.pop()}>Cancel</button>
+        <button className="btn-g" onClick={()=>nav.pop()}>Cancel</button>
       </div>
     </div>
   );
 }
 
-// ══════════════════════════════════════
-// SECTIONS
-// ══════════════════════════════════════
+// ── Sections List ─────────────────────────────────────────
 function Sections({ nav, sections }) {
   const icons = { hero:'home', about:'user', skills:'zap', contact:'mail' };
   const keys  = Object.keys(sections);
   return (
-    <div className="screen slide-center" style={{zIndex:5}}>
+    <div className="screen front" style={{zIndex:5}}>
       <div className="topbar">
         <div><div className="topbar-title">Sections</div><div className="topbar-sub">Edit your site content</div></div>
       </div>
       <div className="sbody pad">
         {keys.length===0
-          ? <div className="empty"><div className="empty-ico"><Icon name="layout" size={48}/></div><div className="empty-title">No sections found</div><div className="empty-sub">Add hero, about, skills documents to Firestore</div></div>
-          : keys.map(k => (
-            <div key={k} className="secitem" onClick={() => nav.push('section-editor:'+k)}>
+          ? <div className="empty">
+              <div className="empty-ico"><Icon name="layout" size={48}/></div>
+              <div className="empty-title">No sections found</div>
+              <div className="empty-sub">Add hero, about, skills documents to Firestore</div>
+            </div>
+          : keys.map(k=>(
+            <div key={k} className="secitem" onClick={()=>nav.push('section-editor:'+k)}>
               <div className="secico"><Icon name={icons[k]||'file-text'} size={22}/></div>
               <div style={{flex:1}}>
                 <div style={{fontSize:15,fontWeight:600,color:'var(--text)'}}>{k.charAt(0).toUpperCase()+k.slice(1)}</div>
@@ -754,59 +621,61 @@ function Sections({ nav, sections }) {
   );
 }
 
-// ══════════════════════════════════════
-// SECTION EDITOR
-// ══════════════════════════════════════
+// ── Section Editor ────────────────────────────────────────
 function SectionEditor({ nav, sections, setSections, sectionKey }) {
-  const data  = sections[sectionKey]||{};
+  const data = sections[sectionKey]||{};
   const [vals, setVals] = useState({...data});
-  const [saving, setSav]= useState(false);
+  const [saving, setSav] = useState(false);
 
   async function save() {
     setSav(true);
     try {
       await db.collection('sections').doc(sectionKey).update({...vals, updatedAt:ts()});
-      setSections(s => ({...s, [sectionKey]:{...s[sectionKey],...vals}}));
+      setSections(s=>({...s,[sectionKey]:{...s[sectionKey],...vals}}));
       toast('Section saved ✓','success');
       nav.pop();
-    } catch(e) { toast('Save failed','error'); }
+    } catch(e) { toast('Save failed: '+e.message,'error'); console.error(e); }
     finally { setSav(false); }
   }
 
+  const stringFields = Object.keys(data).filter(f => {
+    const v = data[f];
+    return typeof v === 'string' || typeof v === 'number';
+  });
+
   return (
-    <div className="screen slide-right" style={{zIndex:20}}>
+    <div className="screen offright" style={{zIndex:20}}>
       <div className="topbar">
-        <div className="ibtn" onClick={() => nav.pop()}><Icon name="arrow-left" size={20}/></div>
+        <div className="ibtn" onClick={()=>nav.pop()}><Icon name="arrow-left" size={20}/></div>
         <div className="topbar-title">{sectionKey.charAt(0).toUpperCase()+sectionKey.slice(1)}</div>
         <div style={{width:36}}/>
       </div>
       <div className="sbody pad2">
         <div className="hint">💡 Changes go live on your portfolio site immediately after saving.</div>
-        {Object.keys(data).map(f => (
+        {stringFields.map(f=>(
           <div key={f} className="field">
             <label className="field-label">{f.replace(/_/g,' ')}</label>
             {f.includes('para')||String(data[f]).length>80
-              ? <textarea className="ftarea" rows={4} value={vals[f]||''} onChange={e=>setVals(v=>({...v,[f]:e.target.value}))}/>
+              ? <textarea className="ftarea" rows={4} value={String(vals[f]||'')} onChange={e=>setVals(v=>({...v,[f]:e.target.value}))}/>
               : <input className="finput" value={String(vals[f]||'')} onChange={e=>setVals(v=>({...v,[f]:e.target.value}))}/>
             }
           </div>
         ))}
+        {stringFields.length===0 && <div className="hint" style={{color:'var(--amber)'}}>⚠️ This section has no editable text fields (may contain arrays or nested objects).</div>}
         <button className="btn-a" onClick={save} disabled={saving}>
-          {saving ? <div className="spin"/> : 'Save Changes'}
+          {saving ? <><div className="spin"/>&nbsp;Saving…</> : 'Save Changes'}
         </button>
-        <button className="btn-g" onClick={() => nav.pop()}>Cancel</button>
+        <button className="btn-g" onClick={()=>nav.pop()}>Cancel</button>
       </div>
     </div>
   );
 }
 
-// ══════════════════════════════════════
-// MESSAGES
-// ══════════════════════════════════════
+// ── Messages ──────────────────────────────────────────────
 function Messages({ nav, messages }) {
   const unread = messages.filter(m=>!m.read).length;
   return (
-    <div className="screen slide-center" style={{zIndex:5}}>
+    <div className="screen front" style={{zIndex:5}}>
       <div className="topbar">
         <div>
           <div className="topbar-title">Messages</div>
@@ -815,9 +684,13 @@ function Messages({ nav, messages }) {
       </div>
       <div className="sbody pad">
         {messages.length===0
-          ? <div className="empty"><div className="empty-ico"><Icon name="message-square" size={48}/></div><div className="empty-title">No messages yet</div><div className="empty-sub">Messages from your contact form appear here in real time</div></div>
-          : messages.map(m => (
-            <div key={m.id} className={`mcard ${m.read?'':'unread'}`} onClick={() => nav.push('msg-detail:'+m.id)}>
+          ? <div className="empty">
+              <div className="empty-ico"><Icon name="message-square" size={48}/></div>
+              <div className="empty-title">No messages yet</div>
+              <div className="empty-sub">Messages from your contact form appear here in real time</div>
+            </div>
+          : messages.map(m=>(
+            <div key={m.id} className={`mcard ${m.read?'':'unread'}`} onClick={()=>nav.push('msg-detail:'+m.id)}>
               <div className="avatar">{(m.name||'U')[0].toUpperCase()}</div>
               <div className="minfo">
                 <div className="mtop"><div className="mname">{m.name||'Unknown'}</div><div className="mtime">{fmtTime(m.createdAt)}</div></div>
@@ -833,26 +706,24 @@ function Messages({ nav, messages }) {
   );
 }
 
-// ══════════════════════════════════════
-// MESSAGE DETAIL
-// ══════════════════════════════════════
+// ── Message Detail ────────────────────────────────────────
 function MsgDetail({ nav, messages, msgId }) {
   const m = messages.find(x=>x.id===msgId);
-  useEffect(() => {
-    if (m && !m.read) db.collection('messages').doc(m.id).update({read:true});
-  }, [msgId]);
+  useEffect(()=>{
+    if (m&&!m.read) db.collection('messages').doc(m.id).update({read:true});
+  },[msgId]);
 
   async function del() {
-    if (!m||!confirm('Delete message from '+m.name+'?')) return;
+    if (!m||!confirm('Delete this message?')) return;
     await db.collection('messages').doc(m.id).delete();
     nav.pop(); toast('Message deleted','success');
   }
 
   if (!m) return null;
   return (
-    <div className="screen slide-right" style={{zIndex:20}}>
+    <div className="screen offright" style={{zIndex:20}}>
       <div className="topbar">
-        <div className="ibtn" onClick={() => nav.pop()}><Icon name="arrow-left" size={20}/></div>
+        <div className="ibtn" onClick={()=>nav.pop()}><Icon name="arrow-left" size={20}/></div>
         <div className="topbar-title">Message</div>
         <div className="ibtn" style={{color:'var(--red)'}} onClick={del}><Icon name="trash-2" size={18}/></div>
       </div>
@@ -865,14 +736,13 @@ function MsgDetail({ nav, messages, msgId }) {
           </div>
           <div style={{marginLeft:'auto',fontSize:12,color:'var(--text3)'}}>{fmtTime(m.createdAt)}</div>
         </div>
-        {m.subject && <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'0.5px',marginBottom:6}}>Subject</div>}
-        {m.subject && <div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginBottom:16}}>{m.subject}</div>}
+        {m.subject&&<><div style={{fontSize:11,fontWeight:600,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.5px',marginBottom:6}}>Subject</div><div style={{fontSize:15,fontWeight:600,color:'var(--text)',marginBottom:16}}>{m.subject}</div></>}
         <div className="card" style={{fontSize:14,color:'var(--text)',lineHeight:1.8,marginBottom:12}}>{m.message}</div>
         <div style={{display:'flex',gap:10}}>
-          {m.email && <button style={{flex:1,padding:13,borderRadius:12,border:'none',background:'var(--accent)',color:'#fff',fontFamily:'Inter',fontSize:14,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}} onClick={()=>window.location.href=`mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject||'Your message')}`}>
+          {m.email&&<button style={{flex:1,padding:13,borderRadius:12,border:'none',background:'var(--accent)',color:'#fff',fontFamily:'Inter',fontSize:14,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}} onClick={()=>window.location.href=`mailto:${m.email}?subject=Re: ${encodeURIComponent(m.subject||'Your message')}`}>
             <Icon name="mail" size={16} color="#fff"/> Reply
           </button>}
-          {m.phone && <button style={{flex:1,padding:13,borderRadius:12,border:'none',background:'#25D366',color:'#fff',fontFamily:'Inter',fontSize:14,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}} onClick={()=>window.open(`https://wa.me/${m.phone.replace(/\D/g,'')}`)}>
+          {m.phone&&<button style={{flex:1,padding:13,borderRadius:12,border:'none',background:'#25D366',color:'#fff',fontFamily:'Inter',fontSize:14,fontWeight:600,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',gap:8}} onClick={()=>window.open(`https://wa.me/${m.phone.replace(/\D/g,'')}`)}>
             <Icon name="message-circle" size={16} color="#fff"/> WhatsApp
           </button>}
         </div>
@@ -881,42 +751,56 @@ function MsgDetail({ nav, messages, msgId }) {
   );
 }
 
-// ══════════════════════════════════════
-// ANALYTICS
-// ══════════════════════════════════════
-function Analytics({ nav }) {
-  const [data, setData] = useState(null);
+// ── Analytics ─────────────────────────────────────────────
+function Analytics() {
+  const [data,    setData]    = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    async function load() {
-      try {
-        const snap = await db.collection('analytics').get();
-        const visits = snap.docs.map(d => d.data());
-        // Aggregate
-        const total    = visits.length;
-        const pages    = {};
-        const countries= {};
-        visits.forEach(v => {
-          const p = v.page||'/'; pages[p] = (pages[p]||0)+1;
-          const c = v.country||'Unknown'; countries[c] = (countries[c]||0)+1;
-        });
-        const pageList = Object.entries(pages).sort((a,b)=>b[1]-a[1]).slice(0,6);
-        const countryList = Object.entries(countries).sort((a,b)=>b[1]-a[1]).slice(0,6);
-        setData({ total, pageList, countryList });
-      } catch(e) { console.error(e); setData({ total:0, pageList:[], countryList:[] }); }
-      finally { setLoading(false); }
-    }
-    load();
-  }, []);
+  useEffect(()=>{
+    db.collection('analytics').get().then(snap=>{
+      const visits = snap.docs.map(d=>d.data());
+      const total  = visits.length;
+      const pages={}, countries={}, devices={};
+      visits.forEach(v=>{
+        const p=v.page||'/'; pages[p]=(pages[p]||0)+1;
+        const c=v.country||'Unknown'; countries[c]=(countries[c]||0)+1;
+        const dv=v.device||'desktop'; devices[dv]=(devices[dv]||0)+1;
+      });
+      setData({
+        total,
+        pageList:    Object.entries(pages).sort((a,b)=>b[1]-a[1]).slice(0,6),
+        countryList: Object.entries(countries).sort((a,b)=>b[1]-a[1]).slice(0,6),
+        mobile:  devices['mobile']||0,
+        desktop: devices['desktop']||0,
+      });
+    }).catch(e=>{ console.error(e); setData({total:0,pageList:[],countryList:[],mobile:0,desktop:0}); })
+    .finally(()=>setLoading(false));
+  },[]);
 
-  const maxPage    = data?.pageList[0]?.[1]||1;
-  const maxCountry = data?.countryList[0]?.[1]||1;
+  const flags = {'Zimbabwe':'🇿🇼','United States':'🇺🇸','United Kingdom':'🇬🇧','South Africa':'🇿🇦','Nigeria':'🇳🇬','Kenya':'🇰🇪','Canada':'🇨🇦','Australia':'🇦🇺','Germany':'🇩🇪','India':'🇮🇳','Unknown':'🌍'};
+  const maxP = data?.pageList[0]?.[1]||1;
+  const maxC = data?.countryList[0]?.[1]||1;
 
-  const flagMap = { 'Zimbabwe':'🇿🇼','United States':'🇺🇸','United Kingdom':'🇬🇧','South Africa':'🇿🇦','Nigeria':'🇳🇬','Kenya':'🇰🇪','Canada':'🇨🇦','Australia':'🇦🇺','Germany':'🇩🇪','India':'🇮🇳','Unknown':'🌍' };
+  const snippet = `<script type="module">
+(async()=>{
+  try{
+    const r=await fetch('https://ipapi.co/json/');
+    const d=await r.json();
+    const {initializeApp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+    const {getFirestore,addDoc,collection,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
+    const app=initializeApp({projectId:"roychid-terminal",apiKey:"AIzaSyBRsenqkz6y8X9qv1kkp2lm9Ud3UzdOQ5A",authDomain:"roychid-terminal.firebaseapp.com"},{name:'analytics-'+Math.random()});
+    const db=getFirestore(app);
+    await addDoc(collection(db,'analytics'),{
+      page:location.pathname,country:d.country_name||'Unknown',
+      city:d.city||'',device:/Mobi|Android/i.test(navigator.userAgent)?'mobile':'desktop',
+      ref:document.referrer||'direct',ts:serverTimestamp()
+    });
+  }catch(e){}
+})();
+<\/script>`;
 
   return (
-    <div className="screen slide-center" style={{zIndex:5}}>
+    <div className="screen front" style={{zIndex:5}}>
       <div className="topbar">
         <div><div className="topbar-title">Analytics</div><div className="topbar-sub">Portfolio site traffic</div></div>
       </div>
@@ -929,66 +813,56 @@ function Analytics({ nav }) {
               <div className="a-sub">Total page visits tracked</div>
             </div>
 
-            {data.total === 0 && (
-              <div className="hint" style={{marginBottom:16}}>
-                📊 No visits tracked yet. Add the tracking snippet to your portfolio site to start seeing data here.
-                <br/><br/>
-                <strong style={{color:'var(--text)'}}>Add this to every page of your portfolio:</strong>
+            {data.total>0 && (
+              <div className="a-grid">
+                <div className="a-box">
+                  <div className="a-box-n">{data.mobile}</div>
+                  <div className="a-box-l">📱 Mobile</div>
+                </div>
+                <div className="a-box">
+                  <div className="a-box-n">{data.desktop}</div>
+                  <div className="a-box-l">🖥️ Desktop</div>
+                </div>
               </div>
             )}
 
-            {data.total === 0 && (
-              <div className="card" style={{marginBottom:16}}>
-                <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',letterSpacing:'0.5px',marginBottom:8,textTransform:'uppercase'}}>Tracking Snippet</div>
-                <pre style={{fontSize:11,color:'var(--accentL)',overflowX:'auto',lineHeight:1.6,background:'var(--bg)',padding:12,borderRadius:8,border:'1px solid var(--border)'}}>{`<script>
-(async()=>{
-  const r=await fetch('https://ipapi.co/json/');
-  const d=await r.json();
-  const {initializeApp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-  const {getFirestore,addDoc,collection,serverTimestamp}=await import('https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js');
-  const app=initializeApp({projectId:"roychid-terminal",apiKey:"AIzaSyBRsenqkz6y8X9qv1kkp2lm9Ud3UzdOQ5A",authDomain:"roychid-terminal.firebaseapp.com"});
-  const db=getFirestore(app);
-  await addDoc(collection(db,'analytics'),{
-    page:location.pathname,
-    country:d.country_name||'Unknown',
-    city:d.city||'',
-    device:/Mobi|Android/i.test(navigator.userAgent)?'mobile':'desktop',
-    ref:document.referrer||'direct',
-    ts:serverTimestamp()
-  });
-})();
-<\/script>`}</pre>
+            {data.total===0 && (
+              <div className="hint">
+                📊 No visits yet. The analytics snippet is already embedded in your portfolio site files. Once your site is deployed and visited, data will appear here.
               </div>
             )}
 
-            {data.pageList.length > 0 && (
-              <>
-                <div className="slabel">Top Pages</div>
-                <div className="card">
-                  {data.pageList.map(([page, count]) => (
-                    <div key={page} className="bar-row">
-                      <div className="bar-label" style={{fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{page==='/'?'Home':page}</div>
-                      <div className="bar-track"><div className="bar-fill" style={{width:`${(count/maxPage)*100}%`}}/></div>
-                      <div className="bar-count">{count}</div>
+            {data.pageList.length>0 && <>
+              <div className="slabel">Top Pages</div>
+              <div className="card">
+                {data.pageList.map(([page,count])=>(
+                  <div key={page} className="bar-row">
+                    <div className="bar-label" style={{fontSize:12,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{page==='/'?'Home':page}</div>
+                    <div className="bar-track"><div className="bar-fill" style={{width:`${(count/maxP)*100}%`}}/></div>
+                    <div className="bar-count">{count}</div>
+                  </div>
+                ))}
+              </div>
+              <div className="slabel">Visitors by Country</div>
+              <div className="card">
+                {data.countryList.map(([country,count])=>(
+                  <div key={country} className="bar-row">
+                    <div className="bar-label" style={{display:'flex',alignItems:'center',gap:6,fontSize:12}}>
+                      <span>{flags[country]||'🌍'}</span>
+                      <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{country}</span>
                     </div>
-                  ))}
-                </div>
+                    <div className="bar-track"><div className="bar-fill" style={{width:`${(count/maxC)*100}%`,background:'var(--green)'}}/></div>
+                    <div className="bar-count">{count}</div>
+                  </div>
+                ))}
+              </div>
+            </>}
 
-                <div className="slabel">Visitors by Country</div>
-                <div className="card">
-                  {data.countryList.map(([country, count]) => (
-                    <div key={country} className="bar-row">
-                      <div className="bar-label" style={{display:'flex',alignItems:'center',gap:6,fontSize:12}}>
-                        <span>{flagMap[country]||'🌍'}</span>
-                        <span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{country}</span>
-                      </div>
-                      <div className="bar-track"><div className="bar-fill" style={{width:`${(count/maxCountry)*100}%`,background:'var(--green)'}}/></div>
-                      <div className="bar-count">{count}</div>
-                    </div>
-                  ))}
-                </div>
-              </>
-            )}
+            <div className="slabel">Tracking Snippet</div>
+            <div className="card">
+              <div style={{fontSize:11,fontWeight:600,color:'var(--text3)',letterSpacing:'.5px',marginBottom:8,textTransform:'uppercase'}}>Already in your portfolio — reference copy</div>
+              <pre style={{fontSize:10.5,color:'var(--accentL)',overflowX:'auto',lineHeight:1.6,background:'var(--bg)',padding:12,borderRadius:8,border:'1px solid var(--border)',whiteSpace:'pre-wrap',wordBreak:'break-all'}}>{snippet}</pre>
+            </div>
           </>
         }
       </div>
@@ -996,14 +870,12 @@ function Analytics({ nav }) {
   );
 }
 
-// ══════════════════════════════════════
-// SETTINGS
-// ══════════════════════════════════════
+// ── Settings ──────────────────────────────────────────────
 function Settings({ nav, onLock, onResetPin }) {
-  const [notif, setNotif] = useState(Notification?.permission||'default');
+  const [notif, setNotif] = useState(typeof Notification!=='undefined'?Notification.permission:'default');
 
   async function reqNotif() {
-    if (!('Notification' in window)) { toast('Not supported on this device','error'); return; }
+    if (!('Notification' in window)) { toast('Not supported','error'); return; }
     const p = await Notification.requestPermission();
     setNotif(p);
     toast(p==='granted'?'Notifications enabled ✓':'Notifications blocked', p==='granted'?'success':'error');
@@ -1011,33 +883,33 @@ function Settings({ nav, onLock, onResetPin }) {
 
   const rows = [
     { group:'Security', items:[
-      { icon:'key',      label:'Change PIN',           sub:'Reset your 4-digit PIN',          action:onResetPin, color:'rgba(245,158,11,0.15)', iconColor:'var(--amber)' },
-      { icon:'lock',     label:'Lock App',             sub:'Return to PIN screen',            action:onLock,     color:'var(--accentS)',         iconColor:'var(--accentL)' },
+      { icon:'key',      label:'Change PIN',       sub:'Reset your 4-digit PIN', action:onResetPin, c:'rgba(245,158,11,.15)', ic:'var(--amber)' },
+      { icon:'lock',     label:'Lock App',         sub:'Return to PIN screen',   action:onLock,     c:'var(--accentS)',       ic:'var(--accentL)' },
     ]},
     { group:'Notifications', items:[
-      { icon:'bell',     label:'Push Notifications',   sub: notif==='granted'?'Enabled ✓': notif==='denied'?'Blocked in browser settings':'Tap to enable', action:reqNotif, color:'rgba(16,185,129,0.12)', iconColor:'var(--green)' },
+      { icon:'bell',     label:'Push Notifications', sub:notif==='granted'?'Enabled ✓':notif==='denied'?'Blocked in browser':'Tap to enable', action:reqNotif, c:'rgba(16,185,129,.12)', ic:'var(--green)' },
     ]},
     { group:'Firebase', items:[
-      { icon:'database', label:'Project',              sub:'roychid-terminal',                action:null,       color:'rgba(249,115,22,0.15)',  iconColor:'#f97316' },
+      { icon:'database', label:'Project ID', sub:'roychid-terminal', action:null, c:'rgba(249,115,22,.15)', ic:'#f97316' },
     ]},
     { group:'App', items:[
-      { icon:'info',     label:'Roy CMS',              sub:'Version 2.0 · Personal use',      action:null,       color:'var(--accentS)',         iconColor:'var(--accentL)' },
+      { icon:'info', label:'Roy CMS', sub:'Version 4.0 · Personal use', action:null, c:'var(--accentS)', ic:'var(--accentL)' },
     ]},
   ];
 
   return (
-    <div className="screen slide-center" style={{zIndex:5}}>
+    <div className="screen front" style={{zIndex:5}}>
       <div className="topbar">
         <div><div className="topbar-title">Settings</div><div className="topbar-sub">Roy CMS</div></div>
       </div>
       <div className="sbody pad">
-        {rows.map(grp => (
+        {rows.map(grp=>(
           <div key={grp.group} className="sgroup">
             <div className="slabel">{grp.group}</div>
             <div className="srows">
-              {grp.items.map(row => (
+              {grp.items.map(row=>(
                 <div key={row.label} className="srow" onClick={row.action||undefined}>
-                  <div className="srow-ico" style={{background:row.color}}><Icon name={row.icon} size={16} color={row.iconColor}/></div>
+                  <div className="srow-ico" style={{background:row.c}}><Icon name={row.icon} size={16} color={row.ic}/></div>
                   <div style={{flex:1}}>
                     <div className="srow-label">{row.label}</div>
                     <div className="srow-sub">{row.sub}</div>
@@ -1053,9 +925,7 @@ function Settings({ nav, onLock, onResetPin }) {
   );
 }
 
-// ══════════════════════════════════════
-// TAB BAR
-// ══════════════════════════════════════
+// ── Tab Bar ───────────────────────────────────────────────
 function TabBar({ active, onSwitch, unread }) {
   const tabs = [
     { id:'dash',      icon:'layout-dashboard', label:'Home'     },
@@ -1066,20 +936,27 @@ function TabBar({ active, onSwitch, unread }) {
   ];
   return (
     <div className="tabbar">
-      {tabs.map(t => (
-        <div key={t.id} className={`tabitem ${active===t.id?'active':''}`} onClick={() => onSwitch(t.id)}>
+      {tabs.map(t=>(
+        <div key={t.id} className={`tabitem ${active===t.id?'active':''}`} onClick={()=>onSwitch(t.id)}>
           <Icon name={t.icon} size={22}/>
           <div className="tabitem-label">{t.label}</div>
-          {t.id==='messages' && unread>0 && <div className="tab-pip">{unread}</div>}
+          {t.id==='messages'&&unread>0&&<div className="tab-pip">{unread}</div>}
         </div>
       ))}
     </div>
   );
 }
 
-// ══════════════════════════════════════
-// ROOT APP
-// ══════════════════════════════════════
+// ── Screen Wrapper — handles slide animation ──────────────
+function ScreenLayer({ children, isTop, hasStack }) {
+  // If there's a pushed screen on top, slide this one behind
+  const cls = hasStack ? 'behind' : 'front';
+  return React.cloneElement(children, {
+    className: `screen ${children.props.className||''} ${cls}`.trim()
+  });
+}
+
+// ── Root App ──────────────────────────────────────────────
 function App() {
   const [locked,   setLocked]   = useState(true);
   const [projects, setProjects] = useState([]);
@@ -1088,86 +965,92 @@ function App() {
   const [stats,    setStats]    = useState({ projects:0, messages:0, visits:0 });
   const nav = useNav('dash');
 
-  // Load data
-  useEffect(() => {
+  // Load all data once unlocked
+  useEffect(()=>{
     if (locked) return;
-    // Projects
     db.collection('projects').orderBy('order','asc').get()
-      .then(s => setProjects(s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.placeholder)))
+      .then(s=>setProjects(s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.placeholder)))
       .catch(console.error);
-    // Sections
     db.collection('sections').get()
-      .then(s => { const o={}; s.docs.forEach(d=>{o[d.id]=d.data();}); setSections(o); })
+      .then(s=>{ const o={}; s.docs.forEach(d=>{o[d.id]=d.data();}); setSections(o); })
       .catch(console.error);
-    // Analytics count
     db.collection('analytics').get()
-      .then(s => setStats(prev => ({...prev, visits:s.size})))
+      .then(s=>setStats(p=>({...p,visits:s.size})))
       .catch(()=>{});
-  }, [locked]);
+  },[locked]);
 
   // Real-time messages
-  useEffect(() => {
+  useEffect(()=>{
     if (locked) return;
     const unsub = db.collection('messages').orderBy('createdAt','desc')
-      .onSnapshot(snap => {
+      .onSnapshot(snap=>{
         const msgs = snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>!m.placeholder);
         setMessages(msgs);
-        setStats(prev => ({...prev, messages:msgs.length, projects:prev.projects}));
+        setStats(p=>({...p,messages:msgs.length}));
       });
     return unsub;
-  }, [locked]);
+  },[locked]);
 
-  // Update project count in stats
-  useEffect(() => {
-    setStats(prev => ({...prev, projects:projects.length}));
-  }, [projects]);
+  useEffect(()=>{ setStats(p=>({...p,projects:projects.length})); },[projects]);
 
   function reloadProjects() {
     return db.collection('projects').orderBy('order','asc').get()
-      .then(s => setProjects(s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.placeholder)));
+      .then(s=>setProjects(s.docs.map(d=>({id:d.id,...d.data()})).filter(p=>!p.placeholder)));
   }
 
-  function unlock() { setLocked(false); }
-  function lock()   { setLocked(true); nav.switchTab('dash'); }
-  function resetPin() {
-    localStorage.removeItem('rpin');
-    lock();
-  }
+  function unlock()   { setLocked(false); }
+  function lock()     { setLocked(true); nav.switchTab('dash'); }
+  function resetPin() { localStorage.removeItem('rpin'); lock(); }
 
   const unread = messages.filter(m=>!m.read).length;
 
-  // Parse pushed screen name + optional id
-  const [screenName, screenId] = (nav.stack[nav.stack.length-1]||'').split(':');
+  // Parse the top of the push stack
+  const topFrame = nav.stack[nav.stack.length-1]||'';
+  const [screenName, screenId] = topFrame.split(':');
+  const hasStack = nav.stack.length > 0;
 
-  // Determine which root screen is visible
-  function renderRootScreen() {
+  // Root screen
+  function rootScreen() {
     switch(nav.tab) {
-      case 'dash':      return <Dashboard nav={nav} stats={stats} messages={messages}/>;
-      case 'projects':  return <Projects  nav={nav} projects={projects} reload={reloadProjects}/>;
-      case 'sections':  return <Sections  nav={nav} sections={sections}/>;
-      case 'analytics': return <Analytics nav={nav}/>;
-      case 'messages':  return <Messages  nav={nav} messages={messages}/>;
-      case 'settings':  return <Settings  nav={nav} onLock={lock} onResetPin={resetPin}/>;
-      default:          return <Dashboard nav={nav} stats={stats} messages={messages}/>;
+      case 'dash':      return <Dashboard  nav={nav} stats={stats} messages={messages}/>;
+      case 'projects':  return <Projects   nav={nav} projects={projects} reload={reloadProjects}/>;
+      case 'sections':  return <Sections   nav={nav} sections={sections}/>;
+      case 'analytics': return <Analytics  nav={nav}/>;
+      case 'messages':  return <Messages   nav={nav} messages={messages}/>;
+      case 'settings':  return <Settings   nav={nav} onLock={lock} onResetPin={resetPin}/>;
+      default:          return <Dashboard  nav={nav} stats={stats} messages={messages}/>;
     }
   }
 
-  // Render pushed screen on top
-  function renderPushedScreen() {
+  // Pushed screen
+  function pushedScreen() {
     if (!screenName) return null;
-    if (screenName === 'project-form')   return <ProjectForm   nav={nav} projects={projects} reload={reloadProjects} editId={screenId||null}/>;
-    if (screenName === 'section-editor') return <SectionEditor nav={nav} sections={sections} setSections={setSections} sectionKey={screenId}/>;
-    if (screenName === 'msg-detail')     return <MsgDetail     nav={nav} messages={messages} msgId={screenId}/>;
+    if (screenName==='project-form')   return <ProjectForm   nav={nav} projects={projects} reload={reloadProjects} editId={screenId||null}/>;
+    if (screenName==='section-editor') return <SectionEditor nav={nav} sections={sections} setSections={setSections} sectionKey={screenId}/>;
+    if (screenName==='msg-detail')     return <MsgDetail     nav={nav} messages={messages} msgId={screenId}/>;
     return null;
   }
+
+  // Modify root screen class based on stack depth
+  const root = rootScreen();
+  const rootWithClass = React.cloneElement(root, {
+    className: `screen ${hasStack ? 'behind' : 'front'}`,
+    style: { ...root.props.style, zIndex:5 }
+  });
+
+  const pushed = pushedScreen();
+  const pushedWithClass = pushed ? React.cloneElement(pushed, {
+    className: `screen front`,
+    style: { ...pushed.props.style, zIndex:20 }
+  }) : null;
 
   if (locked) return <PinScreen onUnlock={unlock}/>;
 
   return (
     <div className="app">
       <div className="screens">
-        {renderRootScreen()}
-        {renderPushedScreen()}
+        {rootWithClass}
+        {pushedWithClass}
       </div>
       <TabBar active={nav.tab} onSwitch={nav.switchTab} unread={unread}/>
       <Toast/>
